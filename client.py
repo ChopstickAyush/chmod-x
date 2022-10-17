@@ -9,14 +9,14 @@ def display() :
 def main():
 
     if len(sys.argv)<2:
-        host = raw_input("Enter host ip address: ")
+        host = str.encode(input("Enter host ip address: "))
     else:
         host = sys.argv[1]
 
     port = 5001
     
     #asks for user name
-    name= raw_input("\33[34m\33[1m CREATING NEW ID:\n Enter username: \33[0m")
+    name= str.encode(input("\33[34m\33[1m CREATING NEW ID:\n Enter username: \33[0m"))
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(2)
     
@@ -44,13 +44,13 @@ def main():
                     print ('\33[31m\33[1m \rDISCONNECTED!!\n \33[0m')
                     sys.exit()
                 else :
-                    sys.stdout.write(data)
+                    sys.stdout.write(data.decode("utf-8"))
                     display()
         
             #user entered a message
             else :
                 msg=sys.stdin.readline()
-                s.send(msg)
+                s.send(str.encode(msg))
                 display()
 
 if __name__ == "__main__":
