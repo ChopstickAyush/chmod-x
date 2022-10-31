@@ -58,28 +58,7 @@ def receive_message(client_socket):
         # and that's also a cause when we receive an empty message
         return False
 
-# def send_msg() : 
-#     while True :
-#         read_sockets, _, exception_sockets = select.select(sockets_list, [], sockets_list)
-#         print(len(read_sockets))
-#         for notified_socket in read_sockets:
-#             if notified_socket != server_socket:
-#                 print("here1")
-#                 message = receive_message(notified_socket)
-#                 print(message)
-#                 if message : 
-#                     for client_socket in clients:
-#                         print("here2")
-#                         # But don't sent it to sender
-#                         if client_socket != notified_socket:
-#                             print("here3")
-#                             # Send user and message (both with their headers)
-#                             # We are reusing here message header sent by sender, and saved username header send by user when he connected
-#                             client_socket.send(user['header'] + user['data'] + message['header'] + message['data'])
 
-
-# t = threading.Thread(target=send_msg)
-# t.start()
 
 while True:
 
@@ -117,7 +96,8 @@ while True:
 
             # Also save username and username header
             clients[client_socket] = user
-
+            # if user is not None:
+            #     client_socket.send(user['header'] + user['data']")
             print('Accepted new connection from {}:{}, username: {}'.format(*client_address, user['data'].decode('utf-8')))
 
         # Else existing socket is sending a message
@@ -141,8 +121,9 @@ while True:
             # Get user by notified socket, so we will know who sent the message
             user = clients[notified_socket]
 
+            
             print(f'Received message from {user["data"].decode("utf-8")}: {message["data"].decode("utf-8")}')
-
+            
             # Iterate over connected clients and broadcast message
             for client_socket in clients:
 
