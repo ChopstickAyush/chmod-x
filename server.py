@@ -1,5 +1,6 @@
 import socket
 import select
+import threading
 
 HEADER_LENGTH = 10
 
@@ -57,6 +58,29 @@ def receive_message(client_socket):
         # and that's also a cause when we receive an empty message
         return False
 
+# def send_msg() : 
+#     while True :
+#         read_sockets, _, exception_sockets = select.select(sockets_list, [], sockets_list)
+#         print(len(read_sockets))
+#         for notified_socket in read_sockets:
+#             if notified_socket != server_socket:
+#                 print("here1")
+#                 message = receive_message(notified_socket)
+#                 print(message)
+#                 if message : 
+#                     for client_socket in clients:
+#                         print("here2")
+#                         # But don't sent it to sender
+#                         if client_socket != notified_socket:
+#                             print("here3")
+#                             # Send user and message (both with their headers)
+#                             # We are reusing here message header sent by sender, and saved username header send by user when he connected
+#                             client_socket.send(user['header'] + user['data'] + message['header'] + message['data'])
+
+
+# t = threading.Thread(target=send_msg)
+# t.start()
+
 while True:
 
     # Calls Unix select() system call or Windows select() WinSock call with three parameters:
@@ -69,7 +93,6 @@ while True:
     #   - errors  - sockets with some exceptions
     # This is a blocking call, code execution will "wait" here and "get" notified in case any action should be taken
     read_sockets, _, exception_sockets = select.select(sockets_list, [], sockets_list)
-
 
     # Iterate over notified sockets
     for notified_socket in read_sockets:
