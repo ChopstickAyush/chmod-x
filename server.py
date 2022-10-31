@@ -1,3 +1,4 @@
+import pdb
 import socket
 import select
 import threading
@@ -97,7 +98,24 @@ while True:
             # Also save username and username header
             clients[client_socket] = user
             # if user is not None:
-            #     client_socket.send(user['header'] + user['data']")
+            # client_socket.send(user['header'] + user['data'])
+
+            for cs in clients:
+                # But don't sent it to sender
+                if cs != client_socket:
+                    # Send user and message (both with their headers)
+                    other_user = clients[cs]
+                    join_message_to_others=(user['data'].decode('utf-8') +" has joined!").encode('utf-8')
+                    join_message_len_1 = len(join_message_to_others)
+                    message_1 = f"{join_message_len_1:<{HEADER_LENGTH}}".encode('utf-8') + join_message_to_others
+
+                    print(join_message_to_others.decode('utf-8'))
+                    join_message_to_new_user = (other_user['data'].decode('utf-8') +" has joined!").encode('utf-8')
+                    join_message_len_2 = len(join_message_to_new_user)
+                    message_2 = f"{join_message_len_2:<{HEADER_LENGTH}}".encode('utf-8') + join_message_to_new_user
+                    # We are reusing here message header sent by sender, and saved username header send by user when he connected
+                    cs.send(message_1)
+                    client_socket.send(message_2)
             print('Accepted new connection from {}:{}, username: {}'.format(*client_address, user['data'].decode('utf-8')))
 
         # Else existing socket is sending a message
@@ -121,7 +139,7 @@ while True:
             # Get user by notified socket, so we will know who sent the message
             user = clients[notified_socket]
 
-            
+            print(user['data'])
             print(f'Received message from {user["data"].decode("utf-8")}: {message["data"].decode("utf-8")}')
             
             # Iterate over connected clients and broadcast message
@@ -131,8 +149,12 @@ while True:
                 if client_socket != notified_socket:
 
                     # Send user and message (both with their headers)
+                    # pdb.set_trace()
+                    message_to_send = user['data']+": ".encode('utf-8') + message['data']
+                    message_len = len(message_to_send)
+                    message_ = f"{message_len:<{HEADER_LENGTH}}".encode('utf-8') + message_to_send
                     # We are reusing here message header sent by sender, and saved username header send by user when he connected
-                    client_socket.send(user['header'] + user['data'] + message['header'] + message['data'])
+                    client_socket.send(message_)
 
     # It's not really necessary to have this, but will handle some socket exceptions just in case
     for notified_socket in exception_sockets:

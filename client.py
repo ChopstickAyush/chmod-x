@@ -11,14 +11,16 @@ class GUI:
     last_received_message = None
     
     def __init__(self, master):
+        self.joined_users=[]
         self.root = master
         self.chat_transcript_area = None
+        self.has_joined = False
         self.name_widget = None
         self.enter_text_widget = None
         self.join_button = None
-        self.initialize_socket()
+        
         self.initialize_gui()
-        self.listen_for_incoming_messages_in_a_thread()
+        
 
     def initialize_socket(self):
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # initialazing socket with TCP and IPv4
@@ -34,6 +36,7 @@ class GUI:
         self.display_chat_box()
         
         
+        
     
     def listen_for_incoming_messages_in_a_thread(self):
         thread = threading.Thread(target=self.receive_message_from_server, args=(self.client_socket,)) # Create a thread for the send and receive in same time 
@@ -42,26 +45,34 @@ class GUI:
     def receive_message_from_server(self, so):
         while True:
 
-            username_header = so.recv(HEADER_LENGTH)
+            header = so.recv(HEADER_LENGTH)
 
             # If we received no data, server gracefully closed a connection, for example using socket.close() or socket.shutdown(socket.SHUT_RDWR)
-            if not len(username_header):
+            if not len(header):
+                self.chat_transcript_area.insert('end','Connection closed by the server' + '\n')
                 break
                 # print('Connection closed by the server')
                 # sys.exit()
 
             # Convert header to int value
-            username_length = int(username_header.decode('utf-8').strip())
+            length = int(header.decode('utf-8').strip())
 
             # Receive and decode username
-            username = so.recv(username_length).decode('utf-8')
+            message = so.recv(length).decode('utf-8')
 
+            # if username not in self.joined_users:
+            #     self.chat_transcript_area.insert('end',username +" has joined!" + '\n')
+            #     self.chat_transcript_area.yview(END)
+            #     self.joined_users.append(username)
+            #     continue;
+            
             # Now do the same for message (as we received username, we received whole message, there's no need to check if it has any length)
-            message_header = so.recv(HEADER_LENGTH)
-            message_length = int(message_header.decode('utf-8').strip())
-            message = so.recv(message_length).decode('utf-8')
-            self.chat_transcript_area.insert('end',username +": "+message + '\n')
+            # message_header = so.recv(HEADER_LENGTH)
+            # message_length = int(message_header.decode('utf-8').strip())
+            # message = so.recv(message_length).decode('utf-8')
+            self.chat_transcript_area.insert('end',message + '\n')
             self.chat_transcript_area.yview(END)
+            
            
             # buffer = so.recv(256)
             # if not buffer:
@@ -77,6 +88,9 @@ class GUI:
             #     self.chat_transcript_area.yview(END)
 
         so.close()
+
+    def receive_all_users_in_server(self):
+        pass
 
     def display_name_section(self):
         frame = Frame()
@@ -110,10 +124,17 @@ class GUI:
             messagebox.showerror(
                 "Enter your name", "Enter your name to send a message")
             return
-        self.name_widget.config(state='disabled')
-        username = self.name_widget.get().encode('utf-8')
-        username_header = f"{len(username):<{HEADER_LENGTH}}".encode('utf-8')
-        self.client_socket.send(username_header + username)
+        if not self.has_joined:
+            self.initialize_socket()
+            self.listen_for_incoming_messages_in_a_thread()
+            
+            self.name_widget.config(state='disabled')
+            username = self.name_widget.get().encode('utf-8')
+            username_header = f"{len(username):<{HEADER_LENGTH}}".encode('utf-8')
+            self.client_socket.send(username_header + username)
+            self.chat_transcript_area.insert('end','You have joined the server!' + '\n')
+            self.chat_transcript_area.yview(END)
+            self.has_joined = True
         
 
     def on_enter_key_pressed(self, event):
@@ -129,12 +150,12 @@ class GUI:
     def send_chat(self):
         username = self.name_widget.get().strip() +": "
         data = self.enter_text_widget.get(1.0, 'end').strip()
-        message = data.encode('utf-8')
-        self.chat_transcript_area.insert('end', username+message.decode('utf-8') + '\n')
-        self.chat_transcript_area.yview(END)
-
-        message_header = f"{len(message):<{HEADER_LENGTH}}".encode('utf-8')
-        self.client_socket.send(message_header + message)
+        if data != "":
+            message = data.encode('utf-8')
+            self.chat_transcript_area.insert('end', username+message.decode('utf-8') + '\n')
+            self.chat_transcript_area.yview(END)
+            message_header = f"{len(message):<{HEADER_LENGTH}}".encode('utf-8')
+            self.client_socket.send(message_header + message)
 
         self.enter_text_widget.delete(1.0, 'end')
         return 'break'
