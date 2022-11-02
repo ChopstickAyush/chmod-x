@@ -11,7 +11,6 @@ class GUI:
     last_received_message = None
     
     def __init__(self, master):
-        self.joined_users=[]
         self.root = master
         self.chat_transcript_area = None
         self.has_joined = False
@@ -59,33 +58,15 @@ class GUI:
 
             # Receive and decode username
             message = so.recv(length).decode('utf-8')
-
-            # if username not in self.joined_users:
-            #     self.chat_transcript_area.insert('end',username +" has joined!" + '\n')
-            #     self.chat_transcript_area.yview(END)
-            #     self.joined_users.append(username)
-            #     continue;
-            
+            self.chat_transcript_area.tag_config('warning', foreground="green")
             # Now do the same for message (as we received username, we received whole message, there's no need to check if it has any length)
-            # message_header = so.recv(HEADER_LENGTH)
-            # message_length = int(message_header.decode('utf-8').strip())
-            # message = so.recv(message_length).decode('utf-8')
-            self.chat_transcript_area.insert('end',message + '\n')
-            self.chat_transcript_area.yview(END)
-            
-           
-            # buffer = so.recv(256)
-            # if not buffer:
-            #     break
-            # message = buffer.decode('utf-8')
-         
-            # if "joined" in message:
-            #     user = message.split(":")[1]
-            #     message = user + " has joined"
-            
-            # else:
-            #     self.chat_transcript_area.insert('end', message + '\n')
-            #     self.chat_transcript_area.yview(END)
+            if ":" in message:
+                self.chat_transcript_area.insert('end',message + '\n')
+                self.chat_transcript_area.yview(END)
+            else:
+                self.chat_transcript_area.insert('end',message + '\n','warning')
+                self.chat_transcript_area.yview(END)
+
 
         so.close()
 
