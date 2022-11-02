@@ -12,12 +12,14 @@ conn.autocommit = True
 
 def create_tables(cursor) :
 
-    create =''' 
+    create ='''
+        DROP TABLE IF EXISTS Users; 
         CREATE TABLE IF NOT EXISTS Users (
         Name VARCHAR ( 20 ) PRIMARY KEY,
         Password VARCHAR ( 20 ) NOT NULL
         );
 
+        DROP TABLE IF EXISTS UserGroupInfo;
         CREATE TABLE IF NOT EXISTS UserGroupInfo (
         Name VARCHAR ( 20 ),
         GroupName VARCHAR ( 20 ),
@@ -25,6 +27,7 @@ def create_tables(cursor) :
         Time INT 
         );
 
+        DROP TABLE IF EXISTS Messages;
         CREATE TABLE IF NOT EXISTS Messages (
         GroupName VARCHAR( 20 ), 
         msg VARCHAR ( 100 ), 
@@ -32,6 +35,7 @@ def create_tables(cursor) :
         Time INT
         );
 
+        DROP TABLE IF EXISTS Groups;
         CREATE TABLE IF NOT EXISTS GROUPS (
         GroupName VARCHAR ( 20 ) PRIMARY KEY,
         public_key VARCHAR(1000),
@@ -45,22 +49,86 @@ def create_tables(cursor) :
 
     return
 
-def generatekey(grpname):
-    publicKey, privateKey = rsa.newkeys(random.randint(100,500))
-    pass
+def pendingmsg(username, grpname, cursor) :
+    '''
+    grpname : string
+    username : string
+    returns : list of strings
+    '''
 
-def pending_message(user_name,cursor,grp_name):
-    pass
+    gettimequery = f'''
+    Select Time from UserGroupInfo where Name=\'{username}\' AND GroupName = \'{grpname}\''''
+    cursor.execute(gettimequery)
+    time = cursor.fetchone()
+    if time is None :
+        print("No pending messages")
+        return
+    else : 
+        time = time[0]
+
+    # using this time to get list of messages after this time. 
+
+    getmessagequery = f'''
+    Select Name, msg from Messages where Time > {time} AND GroupName = \'{grpname}\'
+    '''
+    cursor.execute(getmessagequery)
+    rows = cursor.fetchall()
+
+    # Update the last seen message 
+
+    updatetimequery = f'''
+    Update UserGroupInfo SET Time = (Select Max(Time) from Messages where GroupName = \'{grpname}\')
+    '''
+    cursor.execute(updatetimequery)
+
+    return rows
 # pending message of 
 
 group_dict = dict({})
 def enter(user_name,grp_name,cursor):
-    pending_message(user_name,grp_name,cursor)
+    pendingmsg(user_name,grp_name,cursor)
     print("start chat")
     pass
     
-def create_grp(grp_name,L1,cursor):
-    pass
+def creategrp(grpname, names, cursor) :
+    '''
+    grpname : string
+    names : list of strings
+    output : True if created, False if already exists
+    '''
+
+    # Checking if the group name is new ! 
+    
+    grpquery = f'''
+    Select count(*) from GROUPS where GroupName = \'{grpname}\'
+    '''
+    cursor.execute(grpquery)
+    count = cursor.fetchone()[0]
+    #pdb.set_trace()
+    if count != 0 : return False
+    
+    # Now, creating the group .
+
+    public_key, private_key = rsa.newkeys(random.randint(100,500))
+    creategrpquery = f'''
+    INSERT INTO GROUPS (GroupName, public_key, private_key) VALUES (\'{grpname}\', \'{public_key}\', \'{private_key}\')
+    '''
+    cursor.execute(creategrpquery)
+
+    for i in range(len(names)) : 
+        
+        if i == 0 : 
+            insertnamesquery = f'''
+            INSERT INTO UserGroupInfo (Name, GroupName, IsAdmin, Time) VALUES (\'{names[i]}\', \'{grpname}\', TRUE, 0)
+            '''
+            cursor.execute(insertnamesquery)
+        else : 
+            insertnamesquery = f'''
+            INSERT INTO UserGroupInfo (Name, GroupName, IsAdmin, Time) VALUES (\'{names[i]}\', \'{grpname}\', FALSE, 0)
+            '''
+            cursor.execute(insertnamesquery)
+
+    return 
 
 def join_group(user_name,cursor):
     while True:
@@ -69,12 +137,7 @@ def join_group(user_name,cursor):
         if x == 1:
             print("Enter Group Name")
             grp=input(">>>>")
-            if  grp not in group_dict.keys():
-                print("Not A Valid Group Name")
-            elif user_name in group_dict[grp]:
-                enter(grp,user_name,cursor)
-            else: 
-                print("Not A group Member")
+            check_group(grp, user_name, cursor)
                 
         if x == 2 :
             grpname=input("Enter Group Name")
@@ -83,26 +146,45 @@ def join_group(user_name,cursor):
             print("Enter 1. Member Name \n 2. 0 to create group ")
             x=input(">>>")
             while x!="0":
+                while check_user_name(x, cursor)==False:
+                    print("NOT A member Enter again")
+                    x=input(">>>")
                 L1.append(x)
                 print("Enter 1.Member Name \n 2.0 to creste group")
-                x=input(">>>")
-                while check_user_name(x)==False:
-                    print("NOT A member Enter again")
-                    x=input(">>>")           
-            a= create_grp(grp_name,L1,cursor)
+                x=input(">>>")           
+            a= creategrp(grpname,L1,cursor)
             while a==False:
                 print("Name Already In Use. Try another")
                 print("Enter Groupname")
-                grp_name=input(">>>")
-                a= create_grp(grp_name,L1,cursor)
+                grpname=input(">>>")
+                a= creategrp(grpname,L1,cursor)
             if a==True:
                 print("group created")
-                generatekey(grpname)
             
         if x==3:
             break
             
-            
+def check_group(grp, username, cursor) :
+
+    searchgrpquery = f'''
+    Select count(*) from Groups where GroupName = \'{grp}\'
+    '''
+    cursor.execute(searchgrpquery)
+    count = cursor.fetchone()[0]
+
+    if count == 0 : 
+        print("Not A Valid Group Name") 
+    else : 
+        searchuserquery = f'''
+        Select count(*) from UserGroupInfo where Name = \'{username}\' AND GroupName = \'{grp}\'
+        '''
+        cursor.execute(searchuserquery)
+        usercount = cursor.fetchone()[0]
+        if usercount == 0 : 
+            print("Not A group Member") 
+        else : 
+            enter(grp,username,cursor)
+
 
 def check_user_name(name, cursor) :
     check_user = f"Select * from Users where Name = '{name}'"
