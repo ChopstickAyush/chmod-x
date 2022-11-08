@@ -49,6 +49,13 @@ def create_tables(cursor) :
 
     return
 
+def sendmsg(username,grpname,cursor,message,counter):
+    insertmsgquery = f'''
+    INSERT INTO  Messages(GroupName, msg, Name, Time) VALUES (\'{grpname}\',\'{message}\', \'{username}\',{counter})'''
+    cursor.execute(insertmsgquery)
+    
+
+
 def pendingmsg(username, grpname, cursor) :
     '''
     grpname : string
