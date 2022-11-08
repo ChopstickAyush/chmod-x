@@ -10,6 +10,7 @@ HEADER_LENGTH = 10
 IP = "127.0.0.1"
 PORT = 1234
 
+counter = 0
 # Create a socket
 # socket.AF_INET - address family, IPv4, some otehr possible are AF_INET6, AF_BLUETOOTH, AF_UNIX
 # socket.SOCK_STREAM - TCP, conection-based, socket.SOCK_DGRAM - UDP, connectionless, datagrams, socket.SOCK_RAW - raw IP packets
@@ -144,7 +145,11 @@ while True:
             # Get user by notified socket, so we will know who sent the message
             user = clients[notified_socket]
 
-            print(user['data'])
+            # print(user['data'])
+            username = user["data"].decode("utf-8")
+            sendmsg(username,'Test Group',cursor,message["data"].decode("utf-8"),counter)
+            counter = counter+1
+            
             print(f'Received message from {user["data"].decode("utf-8")}: {message["data"].decode("utf-8")}')
             
             # Iterate over connected clients and broadcast message
