@@ -85,6 +85,8 @@ def pendingmsg(username, grpname, cursor) :
 # pending message of 
 
 group_dict = dict({})
+
+
 def enter(user_name,grp_name,cursor):
     pendingmsg(user_name,grp_name,cursor)
     print("start chat")
@@ -200,49 +202,51 @@ cursor = conn.cursor()
 
 #Preparing query to create a database
 create_tables(cursor)
-
-
-print('Welcome')
-print('Enter OPTION \n 1. Existing User \n 2. New User \n 3. Exit')
-while True:
-    x=int(input(">>>"))
-    if x==1:
-      print("Enter Username")
-      user_name = input(">>>")
-      lst = check_user_name(user_name, cursor)
-      if lst != False:
-        print("Enter Password")
-        password = input(">>>")
-        while password != lst[1]:
-             print("Incorrect Password!! Enter Password Again")
-             password = input(">>>")
-        join_group(user_name,cursor)
-      else:
-             print("Not a Existing User")       
-    elif(x==2):
-        print("Type your username")
-        user_name = input(">>>")
-        lst = check_user_name(user_name, cursor)
-        if lst != False:
-          print("Already Existing Try Another")
+creategrp()
+# print('Welcome')
+def user(cursor):
+    while True:
+        print('Enter OPTION \n 1. Existing User \n 2. New User \n 3. Exit')
+        x=int(input(">>>"))
+        if x==1:
+          print("Enter Username")
           user_name = input(">>>")
-        print("Enter Password")
-        password = input(">>>")
-        print("Enter Password Again")
-        mypassword = input(">>>")
-        while mypassword!= password:
-            print("Don't Match Enter Again")
+          lst = check_user_name(user_name, cursor)
+          if lst != False:
+            print("Enter Password")
+            password = input(">>>")
+            while password != lst[1]:
+                 print("Incorrect Password!! Enter Password Again")
+                 password = input(">>>")
+            join_group(user_name,cursor)
+          else:
+                 print("Not a Existing User")       
+        elif(x==2):
+            print("Type your username")
+            user_name = input(">>>")
+            lst = check_user_name(user_name, cursor)
+            if lst != False:
+              print("Already Existing Try Another")
+              user_name = input(">>>")
             print("Enter Password")
             password = input(">>>")
             print("Enter Password Again")
-            mypassword = input(">>>") 
-        insert = f'''
-        INSERT INTO Users (Name, Password) VALUES ('{user_name}', '{password}');
-        '''
-        cursor.execute(insert)
-        print("Successfully Registered")   
-    else:
-        break
+            mypassword = input(">>>")
+            while mypassword!= password:
+                print("Don't Match Enter Again")
+                print("Enter Password")
+                password = input(">>>")
+                print("Enter Password Again")
+                mypassword = input(">>>") 
+            insert = f'''
+            INSERT INTO Users (Name, Password) VALUES ('{user_name}', '{password}');
+            '''
+            cursor.execute(insert)
+            print("Successfully Registered")   
+        else:
+            break
+        
+
 
 #Closing the connection
 conn.close()

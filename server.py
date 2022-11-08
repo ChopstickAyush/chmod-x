@@ -1,7 +1,9 @@
 import pdb
 import socket
 import select
-import threading
+
+from groups import *
+
 
 HEADER_LENGTH = 10
 
@@ -116,6 +118,9 @@ while True:
                     # We are reusing here message header sent by sender, and saved username header send by user when he connected
                     cs.send(message_1)
                     client_socket.send(message_2)
+            
+            user(cursor)
+            # join_group(user_name=user['data'],cursor=cursor)
             print('Accepted new connection from {}:{}, username: {}'.format(*client_address, user['data'].decode('utf-8')))
 
         # Else existing socket is sending a message
