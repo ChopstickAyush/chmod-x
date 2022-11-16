@@ -120,7 +120,7 @@ while True:
                     cs.send(message_1)
                     client_socket.send(message_2)
             
-            user(cursor)
+            userloop(cursor)
             # join_group(user_name=user['data'],cursor=cursor)
             print('Accepted new connection from {}:{}, username: {}'.format(*client_address, user['data'].decode('utf-8')))
 
@@ -147,8 +147,10 @@ while True:
 
             # print(user['data'])
             username = user["data"].decode("utf-8")
-            sendmsg(username,'Test Group',cursor,message["data"].decode("utf-8"),counter)
-            counter = counter+1
+            sendmsg(username,'Test Group',cursor,message["data"].decode("utf-8"))
+
+            #sendmsg(username,'Test Group',cursor,message["data"].decode("utf-8"),counter)
+            #counter = counter+1
             
             print(f'Received message from {user["data"].decode("utf-8")}: {message["data"].decode("utf-8")}')
             

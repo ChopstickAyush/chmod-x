@@ -32,7 +32,7 @@ def create_tables(cursor) :
         GroupName VARCHAR( 20 ), 
         msg VARCHAR ( 100 ), 
         Name VARCHAR ( 20 ),
-        Time INT
+        Time SERIAL
         );
 
         DROP TABLE IF EXISTS Groups;
@@ -49,9 +49,9 @@ def create_tables(cursor) :
 
     return
 
-def sendmsg(username,grpname,cursor,message,counter):
+def sendmsg(username,grpname,cursor,message):
     insertmsgquery = f'''
-    INSERT INTO  Messages(GroupName, msg, Name, Time) VALUES (\'{grpname}\',\'{message}\', \'{username}\',{counter})'''
+    INSERT INTO  Messages(GroupName, msg, Name) VALUES (\'{grpname}\',\'{message}\', \'{username}\')'''
     cursor.execute(insertmsgquery)
     
 
@@ -89,10 +89,6 @@ def pendingmsg(username, grpname, cursor) :
     cursor.execute(updatetimequery)
 
     return rows
-# pending message of 
-
-group_dict = dict({})
-
 
 def enter(user_name,grp_name,cursor):
     pendingmsg(user_name,grp_name,cursor)
@@ -209,9 +205,9 @@ cursor = conn.cursor()
 
 #Preparing query to create a database
 create_tables(cursor)
-creategrp()
+#creategrp()
 # print('Welcome')
-def user(cursor):
+def userloop(cursor):
     while True:
         print('Enter OPTION \n 1. Existing User \n 2. New User \n 3. Exit')
         x=int(input(">>>"))
@@ -252,8 +248,6 @@ def user(cursor):
             print("Successfully Registered")   
         else:
             break
-        
-
 
 #Closing the connection
-conn.close()
+#conn.close()
