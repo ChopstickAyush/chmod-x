@@ -1,4 +1,5 @@
 from codecs import latin_1_decode
+import pdb
 from re import L
 import psycopg2
 import random
@@ -24,7 +25,7 @@ def create_tables(cursor) :
         Name VARCHAR ( 20 ),
         GroupName VARCHAR ( 20 ),
         Isadmin BOOLEAN, 
-        Time INT 
+        Time INT DEFAULT 0
         );
 
         DROP TABLE IF EXISTS Messages;
@@ -64,9 +65,10 @@ def pendingmsg(username, grpname, cursor) :
     '''
 
     gettimequery = f'''
-    Select Time from UserGroupInfo where Name=\'{username}\' AND GroupName = \'{grpname}\''''
+    Select Time from UserGroupInfo where Name=\'{username}\' AND GroupName=\'{grpname}\''''
     cursor.execute(gettimequery)
     time = cursor.fetchone()
+    print(time)
     if time is None :
         print("No pending messages")
         return
@@ -74,7 +76,8 @@ def pendingmsg(username, grpname, cursor) :
         time = time[0]
 
     # using this time to get list of messages after this time. 
-
+    print(time)
+    pdb.set_trace()
     getmessagequery = f'''
     Select Name, msg from Messages where Time > {time} AND GroupName = \'{grpname}\'
     '''
@@ -82,18 +85,29 @@ def pendingmsg(username, grpname, cursor) :
     rows = cursor.fetchall()
 
     # Update the last seen message 
+    curtimequery = f'''Select Max(Time) from Messages where GroupName = \'{grpname}\' '''
+    cursor.execute(curtimequery)
+    curtime = cursor.fetchone()
 
-    updatetimequery = f'''
-    Update UserGroupInfo SET Time = (Select Max(Time) from Messages where GroupName = \'{grpname}\')
-    '''
-    cursor.execute(updatetimequery)
+    if len(curtime) > 0:
+        if  curtime[0] is not None:
+            updatetimequery = f'''
+            Update UserGroupInfo SET Time = ({curtime[0]})
+            '''
+            cursor.execute(updatetimequery)
+   
+
+    
 
     return rows
 
 def enter(user_name,grp_name,cursor):
-    pendingmsg(user_name,grp_name,cursor)
+    messages = pendingmsg(user_name,grp_name,cursor)
+    if messages is not None:
+        print(messages)
+    
     print("start chat")
-    pass
+
     
 def creategrp(grpname, names, cursor) :
     '''
@@ -124,12 +138,12 @@ def creategrp(grpname, names, cursor) :
         
         if i == 0 : 
             insertnamesquery = f'''
-            INSERT INTO UserGroupInfo (Name, GroupName, IsAdmin, Time) VALUES (\'{names[i]}\', \'{grpname}\', TRUE, 0)
+            INSERT INTO UserGroupInfo (Name, GroupName, IsAdmin) VALUES (\'{names[i]}\', \'{grpname}\', TRUE)
             '''
             cursor.execute(insertnamesquery)
         else : 
             insertnamesquery = f'''
-            INSERT INTO UserGroupInfo (Name, GroupName, IsAdmin, Time) VALUES (\'{names[i]}\', \'{grpname}\', FALSE, 0)
+            INSERT INTO UserGroupInfo (Name, GroupName, IsAdmin) VALUES (\'{names[i]}\', \'{grpname}\', FALSE)
             '''
             cursor.execute(insertnamesquery)
 

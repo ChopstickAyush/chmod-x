@@ -10,7 +10,7 @@ HEADER_LENGTH = 10
 IP = "127.0.0.1"
 PORT = 1234
 
-counter = 0
+
 # Create a socket
 # socket.AF_INET - address family, IPv4, some otehr possible are AF_INET6, AF_BLUETOOTH, AF_UNIX
 # socket.SOCK_STREAM - TCP, conection-based, socket.SOCK_DGRAM - UDP, connectionless, datagrams, socket.SOCK_RAW - raw IP packets
@@ -121,7 +121,17 @@ while True:
                     client_socket.send(message_2)
             
             userloop(cursor)
-            # join_group(user_name=user['data'],cursor=cursor)
+            
+            messages = pendingmsg(user['data'].decode('utf-8'),'Test Group',cursor)
+
+            if messages is not None:
+                # print(messages)
+                for usr,msg in messages:
+                    message_to_send = (usr+": " + msg).encode('utf-8')
+                    message_len = len(message_to_send)
+                    message_ = f"{message_len:<{HEADER_LENGTH}}".encode('utf-8') + message_to_send
+                    client_socket.send(message_)
+            #join_group(user_name=user['data'],cursor=cursor)
             print('Accepted new connection from {}:{}, username: {}'.format(*client_address, user['data'].decode('utf-8')))
 
         # Else existing socket is sending a message
