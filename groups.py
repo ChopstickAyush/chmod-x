@@ -77,7 +77,7 @@ def pendingmsg(username, grpname, cursor) :
 
     # using this time to get list of messages after this time. 
     print(time)
-    pdb.set_trace()
+    # pdb.set_trace()
     getmessagequery = f'''
     Select Name, msg from Messages where Time > {time} AND GroupName = \'{grpname}\'
     '''
@@ -213,6 +213,48 @@ def check_user_name(name, cursor) :
     else : return lst
 
 
+def validate(name, password ,cursor) :
+    validate = f"Select * from Users where Name = '{name}' and Password= '{password}'"
+    cursor.execute(validate)
+    lst = cursor.fetchone()
+    if (lst == None): return False
+    else : return True
+
+
+def add_user(name, password, cursor):
+    
+    if not check_user_name(name,cursor):
+        insert = f'''
+                INSERT INTO Users (Name, Password) VALUES ('{name}', '{password}');
+                '''
+        cursor.execute(insert)
+        print('User Added!')
+
+
+
+#temporary function
+def enter_group(name,grpname):
+    grpquery = f'''
+    Select count(*) from GROUPS where GroupName = \'{grpname}\'
+    '''
+    cursor.execute(grpquery)
+    count = cursor.fetchone()[0]
+    #pdb.set_trace()
+    if count != 0 : 
+        public_key, private_key = rsa.newkeys(random.randint(100,500))
+        creategrpquery = f'''
+        INSERT INTO GROUPS (GroupName, public_key, private_key) VALUES (\'{grpname}\', \'{public_key}\', \'{private_key}\')
+        '''
+        cursor.execute(creategrpquery)
+        insertnamesquery = f'''
+            INSERT INTO UserGroupInfo (Name, GroupName, IsAdmin) VALUES (\'{name}\', \'{grpname}\', TRUE)
+            '''
+        cursor.execute(insertnamesquery)
+    else:
+        insertnamesquery = f'''
+            INSERT INTO UserGroupInfo (Name, GroupName, IsAdmin) VALUES (\'{name}\', \'{grpname}\', FALSE)
+            '''
+        cursor.execute(insertnamesquery)
 
 #Creating a cursor object using the cursor() method
 cursor = conn.cursor()

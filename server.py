@@ -89,40 +89,58 @@ while True:
             client_socket, client_address = server_socket.accept()
 
             # Client should send his name right away, receive it
-            user = receive_message(client_socket)
-
+            # user = receive_message(client_socket)
+            userpass = receive_message(client_socket)
             # If False - client disconnected before he sent his name
-            if user is False:
+            if userpass is False:
                 continue
+            
+            userdetails = userpass['data'].decode('utf-8').split("_")
 
+            # err_1 validation failed
+            if userdetails[0] == 'join':
+                if not validate(userdetails[1],userdetails[2],cursor):
+                    client_socket.send("err_1".encode('utf-8'))
+                    continue
+                else:
+                    client_socket.send("suc_0".encode('utf-8'))
+
+            elif userdetails[0] == 'register':
+                if check_user_name(userdetails[1],cursor):
+                    client_socket.send("err_2".encode('utf-8'))
+                else:
+                    add_user(userdetails[1],userdetails[2],cursor)
+                    enter_group(userdetails[1],'Test')
+                    client_socket.send("suc_0".encode('utf-8'))
+                continue
             # Add accepted socket to select.select() list
             sockets_list.append(client_socket)
 
             # Also save username and username header
-            clients[client_socket] = user
+            clients[client_socket] = userdetails[1]
             # if user is not None:
-            # client_socket.send(user['header'] + user['data'])
+            # client_socket.send(user['header'] + userdetails[1])
 
             for cs in clients:
                 # But don't sent it to sender
                 if cs != client_socket:
                     # Send user and message (both with their headers)
                     other_user = clients[cs]
-                    join_message_to_others=(user['data'].decode('utf-8') +" has joined!").encode('utf-8')
+                    join_message_to_others=(userdetails[1] +" has joined!").encode('utf-8')
                     join_message_len_1 = len(join_message_to_others)
                     message_1 = f"{join_message_len_1:<{HEADER_LENGTH}}".encode('utf-8') + join_message_to_others
 
                     print(join_message_to_others.decode('utf-8'))
-                    join_message_to_new_user = (other_user['data'].decode('utf-8') +" has joined!").encode('utf-8')
+                    join_message_to_new_user = (other_user +" has joined!").encode('utf-8')
                     join_message_len_2 = len(join_message_to_new_user)
                     message_2 = f"{join_message_len_2:<{HEADER_LENGTH}}".encode('utf-8') + join_message_to_new_user
                     # We are reusing here message header sent by sender, and saved username header send by user when he connected
                     cs.send(message_1)
                     client_socket.send(message_2)
             
-            userloop(cursor)
+            # userloop(cursor)
             
-            messages = pendingmsg(user['data'].decode('utf-8'),'Test Group',cursor)
+            messages = pendingmsg(userdetails[1],'Test',cursor)
 
             if messages is not None:
                 # print(messages)
@@ -131,8 +149,8 @@ while True:
                     message_len = len(message_to_send)
                     message_ = f"{message_len:<{HEADER_LENGTH}}".encode('utf-8') + message_to_send
                     client_socket.send(message_)
-            #join_group(user_name=user['data'],cursor=cursor)
-            print('Accepted new connection from {}:{}, username: {}'.format(*client_address, user['data'].decode('utf-8')))
+            #join_group(user_name=userdetails[1],cursor=cursor)
+            print('Accepted new connection from {}:{}, username: {}'.format(*client_address, userdetails[1]))
 
         # Else existing socket is sending a message
         else:
@@ -142,7 +160,7 @@ while True:
 
             # If False, client disconnected, cleanup
             if message is False:
-                print('Closed connection from: {}'.format(clients[notified_socket]['data'].decode('utf-8')))
+                print('Closed connection from: {}'.format(clients[notified_socket]))
 
                 # Remove from list for socket.socket()
                 sockets_list.remove(notified_socket)
@@ -153,16 +171,16 @@ while True:
                 continue
 
             # Get user by notified socket, so we will know who sent the message
-            user = clients[notified_socket]
+            # user = clients[notified_socket]
 
-            # print(user['data'])
-            username = user["data"].decode("utf-8")
-            sendmsg(username,'Test Group',cursor,message["data"].decode("utf-8"))
+            # print(userdetails[1])
+            username = clients[notified_socket]
+            sendmsg(username,'Test',cursor,message["data"].decode("utf-8"))
 
-            #sendmsg(username,'Test Group',cursor,message["data"].decode("utf-8"),counter)
+            #sendmsg(username,'Test',cursor,message["data"].decode("utf-8"),counter)
             #counter = counter+1
             
-            print(f'Received message from {user["data"].decode("utf-8")}: {message["data"].decode("utf-8")}')
+            print(f'Received message from {username}: {message["data"].decode("utf-8")}')
             
             # Iterate over connected clients and broadcast message
             for client_socket in clients:
@@ -172,7 +190,7 @@ while True:
 
                     # Send user and message (both with their headers)
                     # pdb.set_trace()
-                    message_to_send = user['data']+": ".encode('utf-8') + message['data']
+                    message_to_send = (username+": ").encode('utf-8') + message['data']
                     message_len = len(message_to_send)
                     message_ = f"{message_len:<{HEADER_LENGTH}}".encode('utf-8') + message_to_send
                     # We are reusing here message header sent by sender, and saved username header send by user when he connected

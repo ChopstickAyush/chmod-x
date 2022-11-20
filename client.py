@@ -14,6 +14,8 @@ class GUI:
         self.root = master
         self.chat_transcript_area = None
         self.has_joined = False
+        self.has_registered = False
+        self.current_group = None
         self.name_widget = None
         self.enter_text_widget = None
         self.join_button = None
@@ -46,13 +48,15 @@ class GUI:
 
             header = so.recv(HEADER_LENGTH)
 
+            
             # If we received no data, server gracefully closed a connection, for example using socket.close() or socket.shutdown(socket.SHUT_RDWR)
             if not len(header):
                 self.chat_transcript_area.insert('end','Connection closed by the server' + '\n')
                 break
                 # print('Connection closed by the server')
                 # sys.exit()
-
+            # if header.decode('utf-8').isalpha:
+            #     break
             # Convert header to int value
             length = int(header.decode('utf-8').strip())
 
@@ -75,11 +79,28 @@ class GUI:
 
     def display_name_section(self):
         frame = Frame()
-        Label(frame, text='Enter Your Name Here! ', font=("arial", 13,"bold")).pack(side='left', pady=20)
-        self.name_widget = Entry(frame, width=60,font=("arial", 13))
-        self.name_widget.pack(side='left', anchor='e',  pady=15)
-        self.join_button = Button(frame, text="Join", width=10, command=self.on_join).pack(side='right',padx=5, pady=15)
-        frame.pack(side='top', anchor='nw')
+        frame.pack()
+
+        #username
+        Label(frame, text='Username:', font=("arial", 13,"bold")).grid(row=0,column=0,padx=5,pady=10)
+        self.name_widget = Entry(frame, width=40,font=("arial", 13))
+        self.name_widget.grid(row=0,column=1,padx=10,pady=10)
+        
+        #password
+        Label(frame, text='Password:', font=("arial", 13,"bold")).grid(row=1,column=0,padx=5,pady=10)
+        self.pass_widget = Entry(frame, width=40,font=("arial", 13))
+        self.pass_widget.grid(row=1,column=1,padx=10,pady=10)
+
+        #groupname
+        # Label(frame, text='Group Name:', font=("arial", 13,"bold")).grid(row=2,column=0,padx=5,pady=10)
+        # self.group_widget = Entry(frame, width=40,font=("arial", 13))
+        # self.group_widget.grid(row=2,column=1,padx=10,pady=10)
+
+        self.join_button = Button(frame, text="Join", width=10, command=self.on_join).grid(row=0,column=2,padx=10)
+        self.sign_up_button = Button(frame, text="Sign Up", width=10, command=self.on_signup).grid(row=1,column=2,padx=10)
+
+        # self.create_group_button = Button(frame, text="Create Group", width=10, command=self.on_join).grid(row=2,column=2,padx=10)
+        
 
     def display_chat_box(self):
         frame = Frame()
@@ -100,22 +121,64 @@ class GUI:
         self.enter_text_widget.bind('<Return>', self.on_enter_key_pressed)
         frame.pack(side='left')
 
-    def on_join(self):
-        if len(self.name_widget.get()) == 0:
+
+    def on_signup(self):
+        if len(self.name_widget.get()) == 0 or len(self.pass_widget.get()) == 0:
             messagebox.showerror(
-                "Enter your name", "Enter your name to send a message")
+                "Invalid username/password", "The username/password field cannot be blank!")
+            return
+        if not self.has_registered:
+            self.initialize_socket()
+            
+     
+            username = self.name_widget.get()
+            password = self.pass_widget.get()
+            
+            userpass = ("register_"+username+"_"+password).encode('utf-8')
+            header = f"{len(userpass):<{HEADER_LENGTH}}".encode('utf-8')
+            self.client_socket.send(header + userpass)
+            code = self.client_socket.recv(10).decode('utf-8')
+
+            if code == 'err_2':
+                messagebox.showerror(
+                "Invalid username/password", "The user already exists!")
+                return
+            else:
+                messagebox.showerror(
+                "Success!", "You have successfully registered!")
+            self.has_registered = True
+    
+    def on_join(self):
+        if len(self.name_widget.get()) == 0 or len(self.pass_widget.get()) == 0:
+            messagebox.showerror(
+                "Invalid username/password", "The username/password field cannot be blank!")
             return
         if not self.has_joined:
             self.initialize_socket()
-            self.listen_for_incoming_messages_in_a_thread()
             
-            self.name_widget.config(state='disabled')
-            username = self.name_widget.get().encode('utf-8')
-            username_header = f"{len(username):<{HEADER_LENGTH}}".encode('utf-8')
-            self.client_socket.send(username_header + username)
+            
+            
+            username = self.name_widget.get()
+            password = self.pass_widget.get()
+            
+            userpass = ("join_"+username+"_"+password).encode('utf-8')
+            header = f"{len(userpass):<{HEADER_LENGTH}}".encode('utf-8')
+            self.client_socket.send(header + userpass)
+            code = self.client_socket.recv(10).decode('utf-8')
+
+            if code == 'err_1':
+                messagebox.showerror(
+                "Invalid username/password", "If The username is not registered, try using the Sign In button!")
+                return
+            ##get validation message
+
+
             self.chat_transcript_area.insert('end','You have joined the server!' + '\n')
             self.chat_transcript_area.yview(END)
             self.has_joined = True
+            self.name_widget.config(state='disabled')
+            self.pass_widget.config(state='disabled')
+            self.listen_for_incoming_messages_in_a_thread()
         
 
     def on_enter_key_pressed(self, event):
