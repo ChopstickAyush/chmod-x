@@ -5,6 +5,11 @@ import psycopg2
 import random
 import rsa
 
+class Wrap:
+    def __init__(self,message,type):
+        self.message = message
+        self.type = type
+
 #establishing the connection
 conn = psycopg2.connect(
    database="postgres", user='postgres', password='1234', host='127.0.0.1', port= '5432'
@@ -212,6 +217,9 @@ def check_user_name(name, cursor) :
     if (lst == None): return False
     else : return lst
 
+def name_request(name):
+    W1=Wrap(name,"check_name")
+    
 
 
 #Creating a cursor object using the cursor() method

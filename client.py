@@ -1,10 +1,11 @@
 from tkinter import Tk, Frame, Scrollbar, Label, END, Entry, Text, VERTICAL, Button, messagebox #Tkinter Python Module for GUI  
 import socket #Sockets for network connection
 import threading # for multiple proccess 
+import pickle
+import pdb
 
-
-HEADER_LENGTH = 10
-
+from clientdb import *
+HEADER_LENGTH = 4096
 
 class GUI:
     client_socket = None
@@ -24,7 +25,7 @@ class GUI:
     def initialize_socket(self):
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # initialazing socket with TCP and IPv4
         remote_ip = '127.0.0.1' # IP address 
-        remote_port = 1234 #TCP port
+        remote_port = 1271 #TCP port
         self.client_socket.connect((remote_ip, remote_port)) #connect to the remote server
 
     def initialize_gui(self): # GUI initializer
@@ -45,28 +46,35 @@ class GUI:
         while True:
 
             header = so.recv(HEADER_LENGTH)
+            print(header)
+            data = pickle.loads(header)
+            
+            
+            if data.type == "Message" :
 
-            # If we received no data, server gracefully closed a connection, for example using socket.close() or socket.shutdown(socket.SHUT_RDWR)
-            if not len(header):
-                self.chat_transcript_area.insert('end','Connection closed by the server' + '\n')
-                break
-                # print('Connection closed by the server')
-                # sys.exit()
+                # If we received no data, server gracefully closed a connection, for example using socket.close() or socket.shutdown(socket.SHUT_RDWR)
+                if not len(data.message):
+                    self.chat_transcript_area.insert('end','Connection closed by the server' + '\n')
+                    break
+                    # print('Connection closed by the server')
+                    # sys.exit()
 
-            # Convert header to int value
-            length = int(header.decode('utf-8').strip())
+                # Convert header to int value
+                length = int(data.message.decode('utf-8').strip())
 
-            # Receive and decode username
-            message = so.recv(length).decode('utf-8')
-            self.chat_transcript_area.tag_config('warning', foreground="green")
-            # Now do the same for message (as we received username, we received whole message, there's no need to check if it has any length)
-            if ":" in message:
-                self.chat_transcript_area.insert('end',message + '\n')
-                self.chat_transcript_area.yview(END)
-            else:
-                self.chat_transcript_area.insert('end',message + '\n','warning')
-                self.chat_transcript_area.yview(END)
+                # Receive and decode username
+                message = so.recv(length).decode('utf-8')
+                message = pickle.loads(message)
+                message = message.message
 
+                self.chat_transcript_area.tag_config('warning', foreground="green")
+                # Now do the same for message (as we received username, we received whole message, there's no need to check if it has any length)
+                if ":" in message:
+                    self.chat_transcript_area.insert('end',message + '\n')
+                    self.chat_transcript_area.yview(END)
+                else:
+                    self.chat_transcript_area.insert('end',message + '\n','warning')
+                    self.chat_transcript_area.yview(END)
 
         so.close()
 
@@ -136,11 +144,19 @@ class GUI:
             self.chat_transcript_area.insert('end', username+message.decode('utf-8') + '\n')
             self.chat_transcript_area.yview(END)
             message_header = f"{len(message):<{HEADER_LENGTH}}".encode('utf-8')
-            self.client_socket.send(message_header + message)
+            self.client_socket.send(pickle.dumps(Wrap(message_header + message,"Message")))
 
         self.enter_text_widget.delete(1.0, 'end')
         return 'break'
 
+    def name_request(self, name):
+        W1 = Wrap(name,"check_name")
+        s = pickle.dumps(W1)
+        self.client_socket.send(s)
+
+
+        
+    
     def on_close_window(self):
         if messagebox.askokcancel("Quit", "Do you want to quit?"):
             self.root.destroy()

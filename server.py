@@ -1,14 +1,15 @@
 import pdb
 import socket
 import select
+import pickle
 
-from groups import *
+from serverdb import *
 
 
-HEADER_LENGTH = 10
+HEADER_LENGTH = 4096
 
 IP = "127.0.0.1"
-PORT = 1234
+PORT = 1271
 
 
 # Create a socket
@@ -40,19 +41,36 @@ print(f'Listening for connections on {IP}:{PORT}...')
 def receive_message(client_socket):
 
     try:
-
+        data = "".encode()
+        # while True:
+        #     print("inside loop")
+        #     packet = client_socket.recv(HEADER_LENGTH)
+        #     if not packet: 
+        #         print("broken")
+        #         break
+        #     print(packet)
+        #     data += packet
         # Receive our "header" containing message length, it's size is defined and constant
-        message_header = client_socket.recv(HEADER_LENGTH)
 
+        packet = client_socket.recv(HEADER_LENGTH)
+        print("pre-load data")
+        message_header_arr = pickle.loads(packet)
+        print("post-load data")
+        message_header = ""
+        for i in message_header_arr : 
+            print("inside for loop")
+            message_header += i
+        print("outside for loop")
         # If we received no data, client gracefully closed a connection, for example using socket.close() or socket.shutdown(socket.SHUT_RDWR)
         if not len(message_header):
+            print("exit")
             return False
 
         # Convert header to int value
         message_length = int(message_header.decode('utf-8').strip())
-
+        print({'header': message_header, 'data': pickle.loads(client_socket.recv(message_length)).message})
         # Return an object of message header and message data
-        return {'header': message_header, 'data': client_socket.recv(message_length)}
+        return {'header': message_header, 'data': pickle.loads(client_socket.recv(message_length)).message}
 
     except:
 
@@ -117,8 +135,8 @@ while True:
                     join_message_len_2 = len(join_message_to_new_user)
                     message_2 = f"{join_message_len_2:<{HEADER_LENGTH}}".encode('utf-8') + join_message_to_new_user
                     # We are reusing here message header sent by sender, and saved username header send by user when he connected
-                    cs.send(message_1)
-                    client_socket.send(message_2)
+                    cs.send(pickle.dumps(Wrap(message_1, "Message")))
+                    client_socket.send(pickle.dumps(Wrap(message_2, "Message")))
             
             userloop(cursor)
             
