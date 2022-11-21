@@ -1,7 +1,7 @@
 import pdb
 import socket
 import select
-
+import pickle
 from groups import *
 
 class Client : 
@@ -17,7 +17,8 @@ class Client :
 HEADER_LENGTH = 10
 
 IP = "127.0.0.1"
-PORT = 1234
+PORT = 1243
+
 
 # Create a socket
 # socket.AF_INET - address family, IPv4, some otehr possible are AF_INET6, AF_BLUETOOTH, AF_UNIX
@@ -120,6 +121,10 @@ while True:
                     grpdetails = group_data['data'].decode('utf-8').split("_")
                     if grpdetails[0]=="grp2":
                         enter_group(userdetails[1],grpdetails[1])
+                    if grpdetails[0]=="grp3":
+                       grouppass2 = receive_message(client_socket)
+                       groupinfo=pickle.loads(grouppass2['data'])
+                       creategrp(grpdetails[1],groupinfo,cursor)
                     
 
             elif userdetails[0] == 'register':
