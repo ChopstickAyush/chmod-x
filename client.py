@@ -1,8 +1,8 @@
 from tkinter import Tk, Frame, Scrollbar, Label, END, Entry, Text, VERTICAL, Button, messagebox #Tkinter Python Module for GUI  
 import socket #Sockets for network connection
 import threading # for multiple proccess 
-import pickle
 import psycopg2
+import json
 HEADER_LENGTH = 10
 
 conn2 = psycopg2.connect(
@@ -188,7 +188,7 @@ class GUI:
                 x=int(input("1) CREATE GROUP 2) JOIN GROUP"))
                 if x==2:
                     groupname = input("Enter name of the group you want to join : ")
-                    group_pass = ("grp2_"+groupname).encode('utf-8')
+                    group_pass = ("grp2_"+groupname +"_"+ username).encode('utf-8')
                     head_group = f"{len(group_pass):<{HEADER_LENGTH}}".encode('utf-8')
                     self.client_socket.send(head_group+group_pass)
                     
@@ -201,12 +201,16 @@ class GUI:
                             break
                         else:
                             grp_mem.append(y)
-                    grp_head=pickle.dumps(grp_mem)
-                    head_group2 = f"{len(grp_head):<{HEADER_LENGTH}}".encode('utf-8')
-                    group_pass=("grp3_"+groupname).encode('utf-8')
-                    head_group = f"{len(group_pass):<{HEADER_LENGTH}}".encode('utf-8')
-                    self.client_socket.send(head_group+group_pass)
-                    self.client_socket.send(head_group2+grp_head)
+                    # grp_head=json.dumps({"members" : grp_mem, "groupname" : groupname})
+                    # head_group2 = f"{len(grp_head):<{HEADER_LENGTH}}".encode('utf-8')
+                    # group_pass=("grp3_"+groupname).encode('utf-8')
+                    # head_group = f"{len(group_pass):<{HEADER_LENGTH}}".encode('utf-8')
+                    #self.client_socket.send(head_group+group_pass)
+                    grp_head=json.dumps({"members" : grp_mem, "groupname" : groupname})
+                    grp_head = ("grp3_" + grp_head).encode('utf-8')
+                    head_group = f"{len(grp_head):<{HEADER_LENGTH}}".encode('utf-8')
+                    print(grp_head)
+                    self.client_socket.send(head_group+grp_head)
 
 
             self.chat_transcript_area.insert('end','You have joined the server!' + '\n')

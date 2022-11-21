@@ -269,7 +269,7 @@ def enter_group(name,grpname):
     cursor.execute(grpquery)
     count = cursor.fetchone()[0]
     #pdb.set_trace()
-    if count != 0 : 
+    if count == 0 : 
         public_key, private_key = rsa.newkeys(random.randint(100,500))
         creategrpquery = f'''
         INSERT INTO GROUPS (GroupName, public_key, private_key) VALUES (\'{grpname}\', \'{public_key}\', \'{private_key}\')

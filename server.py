@@ -1,7 +1,7 @@
 import pdb
 import socket
 import select
-import pickle
+import json
 from groups import *
 
 class Client : 
@@ -88,10 +88,10 @@ while True:
 
     # Iterate over notified sockets
     for notified_socket in read_sockets:
-
+        print("for")
         # If notified socket is a server socket - new connection, accept it
         if notified_socket == server_socket:
-
+            print("notification")
             # Accept new connection
             # That gives us new socket - client socket, connected to this given client only, it's unique for that client
             # The other returned object is ip/port set
@@ -106,9 +106,10 @@ while True:
             # If False - client disconnected before he sent his name
             if userpass is False:
                 continue
-            
-            userdetails = userpass['data'].decode('utf-8').split("_")
 
+            username = None
+            userdetails = userpass['data'].decode('utf-8').split("_")
+            print(userdetails)
             # err_1 validation failed
             if userdetails[0] == 'join':
                 if not validate(userdetails[1],userdetails[2],cursor):
@@ -116,16 +117,36 @@ while True:
                     continue
                 else:
                     client_socket.send("grp_1".encode('utf-8'))
-                    #groupname = input("Enter name of the group you want to join : ")
-                    group_data=receive_message(client_socket)
-                    grpdetails = group_data['data'].decode('utf-8').split("_")
-                    if grpdetails[0]=="grp2":
-                        enter_group(userdetails[1],grpdetails[1])
-                    if grpdetails[0]=="grp3":
-                       grouppass2 = receive_message(client_socket)
-                       groupinfo=pickle.loads(grouppass2['data'])
-                       creategrp(grpdetails[1],groupinfo,cursor)
+                    username = userdetails[1]
                     
+                userpass = receive_message(client_socket)
+                # If False - client disconnected before he sent his name
+                if userpass is False:
+                    continue
+                
+                userdetails = userpass['data'].decode('utf-8').split("_")
+                #groupname = input("Enter name of the group you want to join : ")
+            if userdetails[0] == "grp2" :
+                # group_data=receive_message(client_socket)
+                # grpdetails = group_data['data'].decode('utf-8').split("_")
+                # if grpdetails[0]=="grp2":
+                #     enter_group(userdetails[1],userdetails[2])
+                enter_group(userdetails[2],userdetails[1])
+                groupname = userdetails[1]
+
+            elif userdetails[0]=="grp3":
+                data = userdetails[1]
+                data = json.loads(data)
+                groupname = data["groupname"]
+                creategrp(data["groupname"],data["members"],cursor)
+
+                for i in data["members"] :
+                    for c in clients :
+                        if clients[c].userdetails == i :
+                            clients[c].current_group = data["groupname"]
+
+                print(data["groupname"], data["members"])
+
 
             elif userdetails[0] == 'register':
                 if check_user_name(userdetails[1],cursor):
@@ -138,7 +159,7 @@ while True:
             sockets_list.append(client_socket)
 
             # Also save username and username header
-            clients[client_socket] = Client(client_socket, groupname , userdetails[1])
+            clients[client_socket] = Client(client_socket, groupname , username)
             # if user is not None:
             # client_socket.send(user['header'] + userdetails[1])
 
@@ -148,7 +169,7 @@ while True:
                     # Send user and message (both with their headers)
                     other_user = clients[cs]
                     if (other_user.current_group == clients[client_socket].current_group) :
-                        join_message_to_others=(userdetails[1] +" has joined!").encode('utf-8')
+                        join_message_to_others=(username +" has joined!").encode('utf-8')
                         join_message_len_1 = len(join_message_to_others)
                         message_1 = f"{join_message_len_1:<{HEADER_LENGTH}}".encode('utf-8') + join_message_to_others
 
@@ -162,7 +183,7 @@ while True:
             
             # userloop(cursor)
             
-            messages = pendingmsg(userdetails[1],clients[client_socket].current_group,cursor)
+            messages = pendingmsg(username,clients[client_socket].current_group,cursor)
 
             if messages is not None:
                 # print(messages)
@@ -172,7 +193,7 @@ while True:
                     message_ = f"{message_len:<{HEADER_LENGTH}}".encode('utf-8') + message_to_send
                     client_socket.send(message_)
             #join_group(user_name=userdetails[1],cursor=cursor)
-            print('Accepted new connection from {}:{}, username: {}'.format(*client_address, userdetails[1]))
+            print('Accepted new connection from {}:{}, username: {}'.format(*client_address, username))
 
         # Else existing socket is sending a message
         else:
