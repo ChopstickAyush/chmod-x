@@ -14,21 +14,25 @@ conn.autocommit = True
 def create_tables(cursor) :
 
     create ='''
-        DROP TABLE IF EXISTS Users; 
+        DROP TABLE IF EXISTS Users cascade; 
         CREATE TABLE IF NOT EXISTS Users (
         Name VARCHAR ( 20 ) PRIMARY KEY,
         Password VARCHAR ( 20 ) NOT NULL
         );
 
-        DROP TABLE IF EXISTS UserGroupInfo;
+        DROP TABLE IF EXISTS UserGroupInfo cascade;
         CREATE TABLE IF NOT EXISTS UserGroupInfo (
         Name VARCHAR ( 20 ),
         GroupName VARCHAR ( 20 ),
         Isadmin BOOLEAN, 
-        Time INT DEFAULT 0
+        Time INT DEFAULT 0,
+        FOREIGN KEY (Name)
+        REFERENCES Users (Name),
+        FOREIGN KEY (GroupName)
+        REFERENCES Groups (GroupName)
         );
 
-        DROP TABLE IF EXISTS Messages;
+        DROP TABLE IF EXISTS Messages cascade;
         CREATE TABLE IF NOT EXISTS Messages (
         GroupName VARCHAR( 20 ), 
         msg VARCHAR ( 100 ), 
@@ -36,8 +40,8 @@ def create_tables(cursor) :
         Time SERIAL
         );
 
-        DROP TABLE IF EXISTS Groups;
-        CREATE TABLE IF NOT EXISTS GROUPS (
+        DROP TABLE IF EXISTS Groups cascade;
+        CREATE TABLE IF NOT EXISTS Groups (
         GroupName VARCHAR ( 20 ) PRIMARY KEY,
         public_key VARCHAR(1000),
         private_key VARCHAR(1000)
@@ -119,7 +123,7 @@ def creategrp(grpname, names, cursor) :
     # Checking if the group name is new ! 
     
     grpquery = f'''
-    Select count(*) from GROUPS where GroupName = \'{grpname}\'
+    Select count(*) from Groups where GroupName = \'{grpname}\'
     '''
     cursor.execute(grpquery)
     count = cursor.fetchone()[0]
@@ -130,7 +134,7 @@ def creategrp(grpname, names, cursor) :
 
     public_key, private_key = rsa.newkeys(random.randint(100,500))
     creategrpquery = f'''
-    INSERT INTO GROUPS (GroupName, public_key, private_key) VALUES (\'{grpname}\', \'{public_key}\', \'{private_key}\')
+    INSERT INTO Groups (GroupName, public_key, private_key) VALUES (\'{grpname}\', \'{public_key}\', \'{private_key}\')
     '''
     cursor.execute(creategrpquery)
 
@@ -246,17 +250,18 @@ def get_all_users(cursor,ex=None):
 
 
 #temporary function
+#it doesnt check if the user is already present or not
 def enter_group(name,grpname):
     grpquery = f'''
-    Select count(*) from GROUPS where GroupName = \'{grpname}\'
+    Select count(*) from UserGroupInfo where GroupName = \'{grpname}\'
     '''
     cursor.execute(grpquery)
     count = cursor.fetchone()[0]
     #pdb.set_trace()
-    if count != 0 : 
+    if count == 0 : 
         public_key, private_key = rsa.newkeys(random.randint(100,500))
         creategrpquery = f'''
-        INSERT INTO GROUPS (GroupName, public_key, private_key) VALUES (\'{grpname}\', \'{public_key}\', \'{private_key}\')
+        INSERT INTO Groups (GroupName, public_key, private_key) VALUES (\'{grpname}\', \'{public_key}\', \'{private_key}\')
         '''
         cursor.execute(creategrpquery)
         insertnamesquery = f'''
@@ -264,6 +269,14 @@ def enter_group(name,grpname):
             '''
         cursor.execute(insertnamesquery)
     else:
+        checkquery = f'''
+            Select * FROM UserGroupInfo WHERE Name =\'{name}\' AND GroupName =\'{grpname}\'
+            '''
+        cursor.execute(checkquery)
+        results = cursor.fetchall()
+        # print(results)
+        if len(results) !=0 :
+            return
         insertnamesquery = f'''
             INSERT INTO UserGroupInfo (Name, GroupName, IsAdmin) VALUES (\'{name}\', \'{grpname}\', FALSE)
             '''

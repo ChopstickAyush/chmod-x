@@ -11,8 +11,8 @@ class GUI:
     client_socket = None
     last_received_message = None
     
-    def __init__(self, master,proxy):
-        self.proxy = proxy
+    def __init__(self, master):
+        # self.proxy = proxy
         self.root = master
         self.chat_transcript_area = None
         self.has_joined = False
@@ -21,7 +21,7 @@ class GUI:
         self.name_widget = None
         self.enter_text_widget = None
         self.join_button = None
-        
+        self.users = None
         self.initialize_gui()
         
 
@@ -45,10 +45,13 @@ class GUI:
         thread = threading.Thread(target=self.receive_message_from_server, args=(self.client_socket,)) # Create a thread for the send and receive in same time 
         thread.start()
     #function to recieve msg
+
+
+
     def receive_message_from_server(self, so):
         while True:
 
-            header = so.recv(HEADER_LENGTH)
+            header = so.recv(HEADER_LENGTH+1)
 
             
             # If we received no data, server gracefully closed a connection, for example using socket.close() or socket.shutdown(socket.SHUT_RDWR)
@@ -57,27 +60,43 @@ class GUI:
                 break
                 # print('Connection closed by the server')
                 # sys.exit()
-            # if header.decode('utf-8').isalpha:
-            #     break
-            # Convert header to int value
-            length = int(header.decode('utf-8').strip())
 
-            # Receive and decode username
+            filtered_msg = header.decode('utf-8').strip()
+
+            length = int(filtered_msg[1:])
+
+
             message = so.recv(length).decode('utf-8')
-            self.chat_transcript_area.tag_config('warning', foreground="green")
-            # Now do the same for message (as we received username, we received whole message, there's no need to check if it has any length)
-            if ":" in message:
-                self.chat_transcript_area.insert('end',message + '\n')
-                self.chat_transcript_area.yview(END)
+            # Receive and decode username
+            if filtered_msg[0] == 'R':
+                print(message)
+                self.users = eval(message)
+                continue
             else:
-                self.chat_transcript_area.insert('end',message + '\n','warning')
-                self.chat_transcript_area.yview(END)
+                
+                self.chat_transcript_area.tag_config('warning', foreground="green")
+                # Now do the same for message (as we received username, we received whole message, there's no need to check if it has any length)
+                if ":" in message:
+                    self.chat_transcript_area.insert('end',message + '\n')
+                    self.chat_transcript_area.yview(END)
+                else:
+                    self.chat_transcript_area.insert('end',message + '\n','warning')
+                    self.chat_transcript_area.yview(END)
 
 
         so.close()
 
+
+    #Requests
+    #1. a - authenticate
+    #2. b - recieve all users
     def receive_all_users_in_server(self):
-        pass
+        request = ("Request To Get All Users!").encode('utf-8')
+        header = f"R{len(request):<{HEADER_LENGTH}}".encode('utf-8')
+        self.client_socket.send(header + request)
+
+        return
+        
 
     def display_name_section(self):
         frame = Frame()
@@ -124,25 +143,51 @@ class GUI:
 
 
     def display_create_group_window(self):
+
+        
+        
         top= Toplevel(self.root)
         top.resizable(0, 0)
         top.title("Create a Group")
-        users = self.proxy.get_all_users(self.name_widget.get())
+
+        
+        # print(users)
+
         
         frame = Frame(top)
         frame.pack()
-        Label(frame, text='Select Members', font=("arial", 12,"bold")).grid(row = 0,column= 0,padx=270)
-        vars = []
-        i = 1
-        for user in users:
-            var = IntVar()
-            Checkbutton(frame, text=user, variable=var).grid(row=i,column=0)
-            i +=1
-            vars.append(var)
-           
+   
         
-        Button(frame, text='Print', command=(lambda : [i.get() for i in vars])).grid(row= i+1,column = 0)
+        
+        Label(frame, text='Group Name:', font=("arial", 13,"bold")).grid(row=0,column=0,padx=5,pady=10)
+        self.group_name_widget = Entry(frame, width=40,font=("arial", 13))
+        self.group_name_widget.grid(row=0,column=1,padx=10,pady=10)
+        
+        #password
+        Label(frame, text='Members(enter CSV):', font=("arial", 13,"bold")).grid(row=1,column=0,padx=5,pady=10)
+        self.members_widget = Entry(frame, width=40,font=("arial", 13))
+        self.members_widget.grid(row=1,column=1,padx=10,pady=10)
+        
+        Button(frame, text='Create Group', command=self.create_group_request).grid(row= 2,column = 0)
        
+      
+        return
+    
+    def create_group_request(self):
+        members_list = self.members_widget.get().strip().split(',')
+        members_list.append(self.group_name_widget.get())
+
+        for i in range(len(members_list)):
+            members_list[i] = members_list[i].strip()
+        members_list = str(members_list)
+        request = (members_list).encode('utf-8')
+        header = f"R{len(request):<{HEADER_LENGTH}}".encode('utf-8')
+        self.client_socket.send(header + request)
+
+
+
+
+
         # Label(top, text= "Hello World!", font=('Mistral 18 bold')).place(x=150,y=80)
     def display_join_group_window(self):
         top= Toplevel(self.root)
@@ -170,7 +215,7 @@ class GUI:
             password = self.pass_widget.get()
             
             userpass = ("register_"+username+"_"+password).encode('utf-8')
-            header = f"{len(userpass):<{HEADER_LENGTH}}".encode('utf-8')
+            header = f"S{len(userpass):<{HEADER_LENGTH}}".encode('utf-8')
             self.client_socket.send(header + userpass)
             code = self.client_socket.recv(10).decode('utf-8')
 
@@ -196,7 +241,7 @@ class GUI:
             password = self.pass_widget.get()
             
             userpass = ("join_"+username+"_"+password).encode('utf-8')
-            header = f"{len(userpass):<{HEADER_LENGTH}}".encode('utf-8')
+            header = f"A{len(userpass):<{HEADER_LENGTH}}".encode('utf-8')
             self.client_socket.send(header + userpass)
             code = self.client_socket.recv(10).decode('utf-8')
 
@@ -232,7 +277,7 @@ class GUI:
             message = data.encode('utf-8')
             self.chat_transcript_area.insert('end', username+message.decode('utf-8') + '\n')
             self.chat_transcript_area.yview(END)
-            message_header = f"{len(message):<{HEADER_LENGTH}}".encode('utf-8')
+            message_header = f"M{len(message):<{HEADER_LENGTH}}".encode('utf-8')
             self.client_socket.send(message_header + message)
 
         self.enter_text_widget.delete(1.0, 'end')
@@ -246,9 +291,9 @@ class GUI:
 
 #the mail function 
 if __name__ == '__main__':
-    proxy = xmlrpc.client.ServerProxy("http://localhost:8080/")
+    # proxy = xmlrpc.client.ServerProxy("http://localhost:8080/")
     root = Tk()
-    gui = GUI(root,proxy)
+    gui = GUI(root)
     root.protocol("WM_DELETE_WINDOW", gui.on_close_window)
     root.mainloop()
-    proxy.kill()
+    # proxy.kill()
