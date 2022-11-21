@@ -1,7 +1,7 @@
 from tkinter import Tk,Toplevel ,Frame, Scrollbar, Label, END, Entry, Text, VERTICAL, Button, messagebox, Checkbutton, IntVar #Tkinter Python Module for GUI  
 import socket #Sockets for network connection
 import threading # for multiple proccess 
-import xmlrpc.client
+import json
 
 
 HEADER_LENGTH = 10
@@ -90,12 +90,12 @@ class GUI:
     #Requests
     #1. a - authenticate
     #2. b - recieve all users
-    def receive_all_users_in_server(self):
-        request = ("Request To Get All Users!").encode('utf-8')
-        header = f"R{len(request):<{HEADER_LENGTH}}".encode('utf-8')
-        self.client_socket.send(header + request)
+    # def receive_all_users_in_server(self):
+    #     request = ("Request To Get All Users!").encode('utf-8')
+    #     header = f"R{len(request):<{HEADER_LENGTH}}".encode('utf-8')
+    #     self.client_socket.send(header + request)
 
-        return
+    #     return
         
 
     def display_name_section(self):
@@ -175,12 +175,15 @@ class GUI:
     
     def create_group_request(self):
         members_list = self.members_widget.get().strip().split(',')
-        members_list.append(self.group_name_widget.get())
+        
+        
 
         for i in range(len(members_list)):
             members_list[i] = members_list[i].strip()
-        members_list = str(members_list)
-        request = (members_list).encode('utf-8')
+
+        grp_head=json.dumps({"members" : members_list, "groupname" : self.group_name_widget.get().strip()})
+
+        request = (grp_head).encode('utf-8')
         header = f"R{len(request):<{HEADER_LENGTH}}".encode('utf-8')
         self.client_socket.send(header + request)
 
@@ -197,10 +200,23 @@ class GUI:
         
         frame = Frame(top)
         frame.pack()
+   
         
-           
         
-        Button(frame, text='Print', command=()).grid(row= 1,column = 0)   
+        Label(frame, text='Group Name:', font=("arial", 13,"bold")).grid(row=0,column=0,padx=5,pady=10)
+        self.join_group_name_widget = Entry(frame, width=40,font=("arial", 13))
+        self.join_group_name_widget.grid(row=0,column=1,padx=10,pady=10)
+        
+        
+  
+        def send_group_name(grpname):
+            #J is Join Group request code
+            request = (grpname).encode('utf-8')
+            header = f"J{len(request):<{HEADER_LENGTH}}".encode('utf-8')
+            self.client_socket.send(header + request)   
+        Button(frame, text='Join Group', command=(lambda : send_group_name(self.join_group_name_widget.get().strip()))).grid(row= 2,column = 0)  
+
+
 
     def on_signup(self):
         if len(self.name_widget.get()) == 0 or len(self.pass_widget.get()) == 0:

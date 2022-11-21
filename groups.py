@@ -204,9 +204,9 @@ def check_group(grp, username, cursor) :
         cursor.execute(searchuserquery)
         usercount = cursor.fetchone()[0]
         if usercount == 0 : 
-            print("Not A group Member") 
+            return False
         else : 
-            enter(grp,username,cursor)
+            return True
 
 
 def check_user_name(name, cursor) :

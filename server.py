@@ -2,6 +2,7 @@ import pdb
 import socket
 import select
 import threading
+import json
 # from xmlrpc.server import SimpleXMLRPCServer
 
 from groups import *
@@ -11,28 +12,17 @@ HEADER_LENGTH = 10
 
 IP = "127.0.0.1"
 PORT = 1234
-# QUIT = 0
 
 
-# def kill():
-#     global QUIT
-#     QUIT = 1
+class Client:
+    socket = None
+    current_group = None
+    userdetails = None
 
-
-# def handle_xmlrpc_requests():
-#     while not QUIT:
-#         server.handle_request()
-
-
-# server = SimpleXMLRPCServer(
-#     ("localhost", 8080), allow_none=True, logRequests=False)
-# server.register_function(lambda x: get_all_users(cursor, x), "get_all_users")
-# server.register_function(kill, "kill")
-
-
-# # Create a thread for the send and receive in same time
-# thread = threading.Thread(target=handle_xmlrpc_requests)
-# thread.start()
+    def __init__(self, socket, current_group, userdetails):
+        self.socket = socket
+        self.current_group = current_group
+        self.userdetails = userdetails
 
 
 # Create a socket
@@ -162,50 +152,50 @@ while True:
                     client_socket.send("err_2".encode('utf-8'))
                 else:
                     add_user(userdetails[1], userdetails[2], cursor)
-                    enter_group(userdetails[1], 'Test')
+                    # enter_group(userdetails[1], 'Test')
                     client_socket.send("suc_0".encode('utf-8'))
                 continue
             # Add accepted socket to select.select() list
             sockets_list.append(client_socket)
 
             # Also save username and username header
-            clients[client_socket] = [userdetails[1],None]
-            # if user is not None:
-            # client_socket.send(user['header'] + userdetails[1])
+            clients[client_socket] = Client(
+                client_socket, None, userdetails[1])
+            ######################### TO BE USED #########################################
+            # for cs in clients:
+            #     # But don't sent it to sender
+            #     if cs != client_socket:
+            #         # Send user and message (both with their headers)
+            #         other_user = clients[cs][0]
+            #         join_message_to_others = (
+            #             userdetails[1] + " has joined!").encode('utf-8')
+            #         join_message_len_1 = len(join_message_to_others)
+            #         message_1 = f"M{join_message_len_1:<{HEADER_LENGTH}}".encode(
+            #             'utf-8') + join_message_to_others
 
-            for cs in clients:
-                # But don't sent it to sender
-                if cs != client_socket:
-                    # Send user and message (both with their headers)
-                    other_user = clients[cs][0]
-                    join_message_to_others = (
-                        userdetails[1] + " has joined!").encode('utf-8')
-                    join_message_len_1 = len(join_message_to_others)
-                    message_1 = f"M{join_message_len_1:<{HEADER_LENGTH}}".encode(
-                        'utf-8') + join_message_to_others
+            #         print(join_message_to_others.decode('utf-8'))
+            #         join_message_to_new_user = (
+            #             other_user + " has joined!").encode('utf-8')
+            #         join_message_len_2 = len(join_message_to_new_user)
+            #         message_2 = f"M{join_message_len_2:<{HEADER_LENGTH}}".encode(
+            #             'utf-8') + join_message_to_new_user
+            #         # We are reusing here message header sent by sender, and saved username header send by user when he connected
+            #         cs.send(message_1)
+            #         client_socket.send(message_2)
 
-                    print(join_message_to_others.decode('utf-8'))
-                    join_message_to_new_user = (
-                        other_user + " has joined!").encode('utf-8')
-                    join_message_len_2 = len(join_message_to_new_user)
-                    message_2 = f"M{join_message_len_2:<{HEADER_LENGTH}}".encode(
-                        'utf-8') + join_message_to_new_user
-                    # We are reusing here message header sent by sender, and saved username header send by user when he connected
-                    cs.send(message_1)
-                    client_socket.send(message_2)
+            # messages = pendingmsg(userdetails[1], 'Test', cursor)
 
-            # userloop(cursor)
+            # if messages is not None:
+            #     # print(messages)
+            #     for usr, msg in messages:
+            #         message_to_send = (usr+": " + msg).encode('utf-8')
+            #         message_len = len(message_to_send)
+            #         message_ = f"A{message_len:<{HEADER_LENGTH}}".encode(
+            #             'utf-8') + message_to_send
+            #         client_socket.send(message_)
 
-            messages = pendingmsg(userdetails[1], 'Test', cursor)
+            ######################### TO BE USED #########################################
 
-            if messages is not None:
-                # print(messages)
-                for usr, msg in messages:
-                    message_to_send = (usr+": " + msg).encode('utf-8')
-                    message_len = len(message_to_send)
-                    message_ = f"A{message_len:<{HEADER_LENGTH}}".encode(
-                        'utf-8') + message_to_send
-                    client_socket.send(message_)
             # join_group(user_name=userdetails[1],cursor=cursor)
             # users = str(get_all_users(cursor=cursor,ex=userdetails[1])).encode('utf-8')
             # users_len = len(users)
@@ -224,7 +214,7 @@ while True:
             # If False, client disconnected, cleanup
             if message is False:
                 print('Closed connection from: {}'.format(
-                    clients[notified_socket][0]))
+                    clients[notified_socket].userdetails))
 
                 # Remove from list for socket.socket()
                 sockets_list.remove(notified_socket)
@@ -233,37 +223,75 @@ while True:
                 del clients[notified_socket]
 
                 continue
-            
-            username = clients[notified_socket][0]
+
+            username = clients[notified_socket].userdetails
             # print(message['header'][0])
             if message['header'].decode('utf-8')[0] == 'R':
-                users_list = eval(message['data'].decode('utf-8'))
-                group_name = users_list[-1]
+                details = json.loads(message['data'].decode('utf-8'))
+                group_name = details['groupname']
 
-                
-                users_list = users_list[:-1]
+                users_list = details['members']
                 users_lst = []
                 for i in users_list:
-                    if not check_user_name(i,cursor) or (i == username):
-                        print(i,' is and invalid username!')
+                    if not check_user_name(i, cursor) or (i == username):
+                        print(i, ' is and invalid username!')
                     else:
                         users_lst.append(i)
-               
+
                 users_lst.append(username)
                 users_lst = users_lst[::-1]
-                
-                for i in users_lst:
-                    enter_group(i,group_name)
-                
 
+                for i in users_lst:
+                    enter_group(i, group_name)
+
+            elif message['header'].decode('utf-8')[0] == 'J':
+                group_name = message['data'].decode('utf-8')
+                print(username, group_name)
+                if not check_group(group_name,username,cursor):
+                    continue
+                
+                clients[notified_socket].current_group = group_name
+                for cs in clients:
+                    # But don't sent it to sender
+                    if cs != notified_socket and clients[cs].current_group == group_name:
+                        # Send user and message (both with their headers)
+                        other_user = clients[cs].userdetails
+                        join_message_to_others = (
+                            username + " has joined!").encode('utf-8')
+                        join_message_len_1 = len(join_message_to_others)
+                        message_1 = f"M{join_message_len_1:<{HEADER_LENGTH}}".encode(
+                            'utf-8') + join_message_to_others
+
+                        print(join_message_to_others.decode('utf-8'))
+                        join_message_to_new_user = (
+                            other_user + " has joined!").encode('utf-8')
+                        join_message_len_2 = len(join_message_to_new_user)
+                        message_2 = f"M{join_message_len_2:<{HEADER_LENGTH}}".encode(
+                            'utf-8') + join_message_to_new_user
+                        # We are reusing here message header sent by sender, and saved username header send by user when he connected
+                        cs.send(message_1)
+                        notified_socket.send(message_2)
+
+                messages = pendingmsg(username, group_name, cursor)
+
+                if messages is not None:
+                    # print(messages)
+                    for usr, msg in messages:
+                        message_to_send = (usr+": " + msg).encode('utf-8')
+                        message_len = len(message_to_send)
+                        message_ = f"A{message_len:<{HEADER_LENGTH}}".encode(
+                            'utf-8') + message_to_send
+                        notified_socket.send(message_)
 
             elif message['header'].decode('utf-8')[0] == 'M':
                 # Get user by notified socket, so we will know who sent the message
                 # user = clients[notified_socket]
 
                 # print(userdetails[1])
-                
-                sendmsg(username, 'Test', cursor, message["data"].decode("utf-8"))
+                group_name = clients[notified_socket].current_group
+
+                sendmsg(username, group_name , cursor,
+                        message["data"].decode("utf-8"))
 
                 # sendmsg(username,'Test',cursor,message["data"].decode("utf-8"),counter)
                 #counter = counter+1
@@ -272,10 +300,10 @@ while True:
                     f'Received message from {username}: {message["data"].decode("utf-8")}')
 
                 # Iterate over connected clients and broadcast message
-                for client_socket in clients:
+                for cs in clients:
 
                     # But don't sent it to sender
-                    if client_socket != notified_socket:
+                    if cs != notified_socket and clients[cs].current_group == group_name:
 
                         # Send user and message (both with their headers)
                         # pdb.set_trace()
@@ -285,7 +313,7 @@ while True:
                         message_ = f"M{message_len:<{HEADER_LENGTH}}".encode(
                             'utf-8') + message_to_send
                         # We are reusing here message header sent by sender, and saved username header send by user when he connected
-                        client_socket.send(message_)
+                        cs.send(message_)
 
     # It's not really necessary to have this, but will handle some socket exceptions just in case
     for notified_socket in exception_sockets:
