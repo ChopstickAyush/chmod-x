@@ -96,9 +96,6 @@ def pendingmsg(username, grpname, cursor) :
             '''
             cursor.execute(updatetimequery)
    
-
-    
-
     return rows
 
 def enter(user_name,grp_name,cursor):
@@ -193,6 +190,7 @@ def check_group(grp, username, cursor) :
 
     if count == 0 : 
         print("Not A Valid Group Name") 
+        return False
     else : 
         searchuserquery = f'''
         Select count(*) from UserGroupInfo where Name = \'{username}\' AND GroupName = \'{grp}\'
@@ -201,8 +199,10 @@ def check_group(grp, username, cursor) :
         usercount = cursor.fetchone()[0]
         if usercount == 0 : 
             print("Not A group Member") 
+            return False
         else : 
             enter(grp,username,cursor)
+            return True
 
 
 def check_user_name(name, cursor) :
@@ -230,7 +230,36 @@ def add_user(name, password, cursor):
         cursor.execute(insert)
         print('User Added!')
 
+def add_user_group(username, grpname, cursor) :
+    if (check_user_name(username, cursor)) :
+        insert = f'''
+        INSERT INTO UserGroupInfo (Name, GroupName, IsAdmin) VALUES ('{username}', '{grpname}', FALSE)
+        '''
+        cursor.execute(insert)
+        print("User Added!")
+        return True
+    else : 
+        return False
 
+def current_groups(username, cursor) : 
+    if (check_user_name(username, cursor)) :
+        groups = f'''
+        SELECT GroupName from UserGroupInfo where Name = '{username}'
+        '''
+        cursor.execute(groups)
+        listofgroups = cursor.fetchall()
+        result = [x[0] for x in listofgroups]
+        return result
+
+    else : 
+        return False
+
+def change_group(username, newgroup, clients, client_socket, cursor) :
+    if (check_group(newgroup, username, cursor)) :
+        clients[client_socket].current_group = newgroup
+        return True
+    else : 
+        return False
 
 #temporary function
 def enter_group(name,grpname):

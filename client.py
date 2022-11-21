@@ -2,9 +2,22 @@ from tkinter import Tk, Frame, Scrollbar, Label, END, Entry, Text, VERTICAL, But
 import socket #Sockets for network connection
 import threading # for multiple proccess 
 
-
+import psycopg2
 HEADER_LENGTH = 10
 
+conn2 = psycopg2.connect(
+        database="postgres", user='postgres', password='1234', host='127.0.0.1', port= '5432'
+    )
+conn2.autocommit =True
+cursor = conn2.cursor()
+def user_table(username):
+    create= f'''
+            CREATE TABLE IF NOT EXISTS {username} (
+            GroupName VARCHAR ( 20 ),
+            public_key VARCHAR(1000),
+            private_key VARCHAR(1000)
+            );'''
+    cursor.execute(create)
 
 class GUI:
     client_socket = None
@@ -130,7 +143,6 @@ class GUI:
         if not self.has_registered:
             self.initialize_socket()
             
-     
             username = self.name_widget.get()
             password = self.pass_widget.get()
             
@@ -146,6 +158,7 @@ class GUI:
             else:
                 messagebox.showerror(
                 "Success!", "You have successfully registered!")
+                user_table(username)
             self.has_registered = True
     
     def on_join(self):

@@ -4,12 +4,20 @@ import select
 
 from groups import *
 
+class Client : 
+    socket = None
+    current_group = None
+    userdetails = None
+
+    def __init__(self, socket, current_group, userdetails) :
+        self.socket = socket 
+        self.current_group = current_group
+        self.userdetails = userdetails
 
 HEADER_LENGTH = 10
 
 IP = "127.0.0.1"
 PORT = 1234
-
 
 # Create a socket
 # socket.AF_INET - address family, IPv4, some otehr possible are AF_INET6, AF_BLUETOOTH, AF_UNIX
@@ -87,6 +95,9 @@ while True:
             # That gives us new socket - client socket, connected to this given client only, it's unique for that client
             # The other returned object is ip/port set
             client_socket, client_address = server_socket.accept()
+            
+            # Adding Group Name : 
+            groupname = None
 
             # Client should send his name right away, receive it
             # user = receive_message(client_socket)
@@ -104,20 +115,22 @@ while True:
                     continue
                 else:
                     client_socket.send("suc_0".encode('utf-8'))
+                    groupname = input("Enter name of the group you want to join : ")
+                    enter_group(userdetails[1],groupname)
+                    
 
             elif userdetails[0] == 'register':
                 if check_user_name(userdetails[1],cursor):
                     client_socket.send("err_2".encode('utf-8'))
                 else:
                     add_user(userdetails[1],userdetails[2],cursor)
-                    enter_group(userdetails[1],'Test')
                     client_socket.send("suc_0".encode('utf-8'))
                 continue
             # Add accepted socket to select.select() list
             sockets_list.append(client_socket)
 
             # Also save username and username header
-            clients[client_socket] = userdetails[1]
+            clients[client_socket] = Client(client_socket, groupname , userdetails[1])
             # if user is not None:
             # client_socket.send(user['header'] + userdetails[1])
 
@@ -126,21 +139,22 @@ while True:
                 if cs != client_socket:
                     # Send user and message (both with their headers)
                     other_user = clients[cs]
-                    join_message_to_others=(userdetails[1] +" has joined!").encode('utf-8')
-                    join_message_len_1 = len(join_message_to_others)
-                    message_1 = f"{join_message_len_1:<{HEADER_LENGTH}}".encode('utf-8') + join_message_to_others
+                    if (other_user.current_group == clients[client_socket].current_group) :
+                        join_message_to_others=(userdetails[1] +" has joined!").encode('utf-8')
+                        join_message_len_1 = len(join_message_to_others)
+                        message_1 = f"{join_message_len_1:<{HEADER_LENGTH}}".encode('utf-8') + join_message_to_others
 
-                    print(join_message_to_others.decode('utf-8'))
-                    join_message_to_new_user = (other_user +" has joined!").encode('utf-8')
-                    join_message_len_2 = len(join_message_to_new_user)
-                    message_2 = f"{join_message_len_2:<{HEADER_LENGTH}}".encode('utf-8') + join_message_to_new_user
-                    # We are reusing here message header sent by sender, and saved username header send by user when he connected
-                    cs.send(message_1)
-                    client_socket.send(message_2)
+                        print(join_message_to_others.decode('utf-8'))
+                        join_message_to_new_user = (other_user.userdetails +" has joined!").encode('utf-8')
+                        join_message_len_2 = len(join_message_to_new_user)
+                        message_2 = f"{join_message_len_2:<{HEADER_LENGTH}}".encode('utf-8') + join_message_to_new_user
+                        # We are reusing here message header sent by sender, and saved username header send by user when he connected
+                        cs.send(message_1)
+                        client_socket.send(message_2)
             
             # userloop(cursor)
             
-            messages = pendingmsg(userdetails[1],'Test',cursor)
+            messages = pendingmsg(userdetails[1],clients[client_socket].current_group,cursor)
 
             if messages is not None:
                 # print(messages)
@@ -160,7 +174,7 @@ while True:
 
             # If False, client disconnected, cleanup
             if message is False:
-                print('Closed connection from: {}'.format(clients[notified_socket]))
+                print('Closed connection from: {}'.format(clients[notified_socket].userdetails))
 
                 # Remove from list for socket.socket()
                 sockets_list.remove(notified_socket)
@@ -174,11 +188,8 @@ while True:
             # user = clients[notified_socket]
 
             # print(userdetails[1])
-            username = clients[notified_socket]
-            sendmsg(username,'Test',cursor,message["data"].decode("utf-8"))
-
-            #sendmsg(username,'Test',cursor,message["data"].decode("utf-8"),counter)
-            #counter = counter+1
+            username = clients[notified_socket].userdetails
+            sendmsg(username,clients[notified_socket].current_group,cursor,message["data"].decode("utf-8"))
             
             print(f'Received message from {username}: {message["data"].decode("utf-8")}')
             
@@ -186,10 +197,10 @@ while True:
             for client_socket in clients:
 
                 # But don't sent it to sender
-                if client_socket != notified_socket:
+                if client_socket != notified_socket  and clients[client_socket].current_group == clients[notified_socket].current_group:
 
+                    # Checked if client_socket and notified_socket have the same current group 
                     # Send user and message (both with their headers)
-                    # pdb.set_trace()
                     message_to_send = (username+": ").encode('utf-8') + message['data']
                     message_len = len(message_to_send)
                     message_ = f"{message_len:<{HEADER_LENGTH}}".encode('utf-8') + message_to_send

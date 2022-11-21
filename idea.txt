@@ -1,0 +1,6 @@
+Functions : Remain the same -> Group invariant currently
+
+1. Add member function.
+2. Modify sent and recieved messages so that the groupname is included.
+3. Added a class variable to indicate current group.
+4. Added a class so that server knows current group of each client.
