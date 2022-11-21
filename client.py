@@ -1,6 +1,7 @@
-from tkinter import Tk, Frame, Scrollbar, Label, END, Entry, Text, VERTICAL, Button, messagebox #Tkinter Python Module for GUI  
+from tkinter import Tk,Toplevel ,Frame, Scrollbar, Label, END, Entry, Text, VERTICAL, Button, messagebox, Checkbutton, IntVar #Tkinter Python Module for GUI  
 import socket #Sockets for network connection
 import threading # for multiple proccess 
+import xmlrpc.client
 
 
 HEADER_LENGTH = 10
@@ -10,7 +11,8 @@ class GUI:
     client_socket = None
     last_received_message = None
     
-    def __init__(self, master):
+    def __init__(self, master,proxy):
+        self.proxy = proxy
         self.root = master
         self.chat_transcript_area = None
         self.has_joined = False
@@ -98,9 +100,8 @@ class GUI:
 
         self.join_button = Button(frame, text="Join", width=10, command=self.on_join).grid(row=0,column=2,padx=10)
         self.sign_up_button = Button(frame, text="Sign Up", width=10, command=self.on_signup).grid(row=1,column=2,padx=10)
-
-        # self.create_group_button = Button(frame, text="Create Group", width=10, command=self.on_join).grid(row=2,column=2,padx=10)
-        
+        self.create_group_button = Button(frame, text="Create Group", width=10, command=self.display_create_group_window).grid(row=3,column=0,padx=10)
+        self.join_group_button = Button(frame, text="Join Group", width=10, command=self.display_join_group_window).grid(row=3,column=1,padx=10)
 
     def display_chat_box(self):
         frame = Frame()
@@ -122,6 +123,40 @@ class GUI:
         frame.pack(side='left')
 
 
+    def display_create_group_window(self):
+        top= Toplevel(self.root)
+        top.resizable(0, 0)
+        top.title("Create a Group")
+        users = self.proxy.get_all_users(self.name_widget.get())
+        
+        frame = Frame(top)
+        frame.pack()
+        Label(frame, text='Select Members', font=("arial", 12,"bold")).grid(row = 0,column= 0,padx=270)
+        vars = []
+        i = 1
+        for user in users:
+            var = IntVar()
+            Checkbutton(frame, text=user, variable=var).grid(row=i,column=0)
+            i +=1
+            vars.append(var)
+           
+        
+        Button(frame, text='Print', command=(lambda : [i.get() for i in vars])).grid(row= i+1,column = 0)
+       
+        # Label(top, text= "Hello World!", font=('Mistral 18 bold')).place(x=150,y=80)
+    def display_join_group_window(self):
+        top= Toplevel(self.root)
+        top.resizable(0, 0)
+        top.title("Join a Group")
+       
+        
+        frame = Frame(top)
+        frame.pack()
+        
+           
+        
+        Button(frame, text='Print', command=()).grid(row= 1,column = 0)   
+
     def on_signup(self):
         if len(self.name_widget.get()) == 0 or len(self.pass_widget.get()) == 0:
             messagebox.showerror(
@@ -142,7 +177,6 @@ class GUI:
             if code == 'err_2':
                 messagebox.showerror(
                 "Invalid username/password", "The user already exists!")
-                return
             else:
                 messagebox.showerror(
                 "Success!", "You have successfully registered!")
@@ -212,7 +246,9 @@ class GUI:
 
 #the mail function 
 if __name__ == '__main__':
+    proxy = xmlrpc.client.ServerProxy("http://localhost:8080/")
     root = Tk()
-    gui = GUI(root)
+    gui = GUI(root,proxy)
     root.protocol("WM_DELETE_WINDOW", gui.on_close_window)
     root.mainloop()
+    proxy.kill()

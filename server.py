@@ -1,6 +1,8 @@
 import pdb
 import socket
 import select
+import threading
+from xmlrpc.server import SimpleXMLRPCServer
 
 from groups import *
 
@@ -9,6 +11,25 @@ HEADER_LENGTH = 10
 
 IP = "127.0.0.1"
 PORT = 1234
+QUIT = 0
+
+def kill():
+    global QUIT
+    QUIT = 1
+
+def handle_xmlrpc_requests():
+    while not QUIT:
+        server.handle_request()
+
+server = SimpleXMLRPCServer(("localhost",8080),allow_none=True,logRequests=False)
+server.register_function(lambda x : get_all_users(cursor,x), "get_all_users")
+server.register_function(kill, "kill")
+
+
+thread = threading.Thread(target=handle_xmlrpc_requests) # Create a thread for the send and receive in same time 
+thread.start()
+
+
 
 
 # Create a socket
@@ -35,6 +56,10 @@ sockets_list = [server_socket]
 clients = {}
 
 print(f'Listening for connections on {IP}:{PORT}...')
+
+
+    
+
 
 # Handles message receiving
 def receive_message(client_socket):
@@ -150,6 +175,11 @@ while True:
                     message_ = f"{message_len:<{HEADER_LENGTH}}".encode('utf-8') + message_to_send
                     client_socket.send(message_)
             #join_group(user_name=userdetails[1],cursor=cursor)
+            # users = str(get_all_users(cursor=cursor,ex=userdetails[1])).encode('utf-8')
+            # users_len = len(users)
+            # msg_ = f"{users_len:<{HEADER_LENGTH}}".encode('utf-8') + users
+            # client_socket.send(msg_)
+            
             print('Accepted new connection from {}:{}, username: {}'.format(*client_address, userdetails[1]))
 
         # Else existing socket is sending a message

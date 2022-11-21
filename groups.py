@@ -230,6 +230,19 @@ def add_user(name, password, cursor):
         cursor.execute(insert)
         print('User Added!')
 
+def get_all_users(cursor,ex=None):
+    if ex is None:
+        query = f'''SELECT Name From Users;'''
+    else:
+        query = f'''SELECT Name From Users WHERE Name != \'{ex}\''''
+    cursor.execute(query)
+    names = []
+    lst = cursor.fetchall()
+    if (lst == None): return []
+    else:
+        for i in lst:
+            names.append(i[0])
+        return names
 
 
 #temporary function
