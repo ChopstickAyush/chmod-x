@@ -114,9 +114,12 @@ while True:
                     client_socket.send("err_1".encode('utf-8'))
                     continue
                 else:
-                    client_socket.send("suc_0".encode('utf-8'))
-                    groupname = input("Enter name of the group you want to join : ")
-                    enter_group(userdetails[1],groupname)
+                    client_socket.send("grp_1".encode('utf-8'))
+                    #groupname = input("Enter name of the group you want to join : ")
+                    group_data=receive_message(client_socket)
+                    grpdetails = group_data['data'].decode('utf-8').split("_")
+                    if grpdetails[0]=="grp2":
+                        enter_group(userdetails[1],grpdetails[1])
                     
 
             elif userdetails[0] == 'register':

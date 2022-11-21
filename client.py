@@ -184,6 +184,11 @@ class GUI:
                 "Invalid username/password", "If The username is not registered, try using the Sign In button!")
                 return
             ##get validation message
+            if code == 'grp_1':
+                groupname = input("Enter name of the group you want to join : ")
+                group_pass = ("grp2_"+groupname).encode('utf-8')
+                head_group = f"{len(group_pass):<{HEADER_LENGTH}}".encode('utf-8')
+                self.client_socket.send(head_group+group_pass)
 
 
             self.chat_transcript_area.insert('end','You have joined the server!' + '\n')
