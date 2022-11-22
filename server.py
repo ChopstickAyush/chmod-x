@@ -161,46 +161,6 @@ while True:
             # Also save username and username header
             clients[client_socket] = Client(
                 client_socket, None, userdetails[1])
-            ######################### TO BE USED #########################################
-            # for cs in clients:
-            #     # But don't sent it to sender
-            #     if cs != client_socket:
-            #         # Send user and message (both with their headers)
-            #         other_user = clients[cs][0]
-            #         join_message_to_others = (
-            #             userdetails[1] + " has joined!").encode('utf-8')
-            #         join_message_len_1 = len(join_message_to_others)
-            #         message_1 = f"M{join_message_len_1:<{HEADER_LENGTH}}".encode(
-            #             'utf-8') + join_message_to_others
-
-            #         print(join_message_to_others.decode('utf-8'))
-            #         join_message_to_new_user = (
-            #             other_user + " has joined!").encode('utf-8')
-            #         join_message_len_2 = len(join_message_to_new_user)
-            #         message_2 = f"M{join_message_len_2:<{HEADER_LENGTH}}".encode(
-            #             'utf-8') + join_message_to_new_user
-            #         # We are reusing here message header sent by sender, and saved username header send by user when he connected
-            #         cs.send(message_1)
-            #         client_socket.send(message_2)
-
-            # messages = pendingmsg(userdetails[1], 'Test', cursor)
-
-            # if messages is not None:
-            #     # print(messages)
-            #     for usr, msg in messages:
-            #         message_to_send = (usr+": " + msg).encode('utf-8')
-            #         message_len = len(message_to_send)
-            #         message_ = f"A{message_len:<{HEADER_LENGTH}}".encode(
-            #             'utf-8') + message_to_send
-            #         client_socket.send(message_)
-
-            ######################### TO BE USED #########################################
-
-            # join_group(user_name=userdetails[1],cursor=cursor)
-            # users = str(get_all_users(cursor=cursor,ex=userdetails[1])).encode('utf-8')
-            # users_len = len(users)
-            # msg_ = f"{users_len:<{HEADER_LENGTH}}".encode('utf-8') + users
-            # client_socket.send(msg_)
 
             print('Accepted new connection from {}:{}, username: {}'.format(
                 *client_address, userdetails[1]))
@@ -293,8 +253,7 @@ while True:
                 sendmsg(username, group_name , cursor,
                         message["data"].decode("utf-8"))
 
-                # sendmsg(username,'Test',cursor,message["data"].decode("utf-8"),counter)
-                #counter = counter+1
+            
 
                 print(
                     f'Received message from {username}: {message["data"].decode("utf-8")}')

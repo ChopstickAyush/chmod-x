@@ -119,7 +119,7 @@ class GUI:
 
         self.join_button = Button(frame, text="Join", width=10, command=self.on_join).grid(row=0,column=2,padx=10)
         self.sign_up_button = Button(frame, text="Sign Up", width=10, command=self.on_signup).grid(row=1,column=2,padx=10)
-        self.create_group_button = Button(frame, text="Create Group", width=10, command=self.display_create_group_window).grid(row=3,column=0,padx=10)
+        self.create_group_button = Button(frame, text="Create/Amend Group", width=10, command=self.display_create_group_window).grid(row=3,column=0,padx=10)
         self.join_group_button = Button(frame, text="Join Group", width=10, command=self.display_join_group_window).grid(row=3,column=1,padx=10)
 
     def display_chat_box(self):
@@ -148,7 +148,7 @@ class GUI:
         
         top= Toplevel(self.root)
         top.resizable(0, 0)
-        top.title("Create a Group")
+        top.title("Create/Amend a Group")
 
         
         # print(users)
@@ -168,7 +168,7 @@ class GUI:
         self.members_widget = Entry(frame, width=40,font=("arial", 13))
         self.members_widget.grid(row=1,column=1,padx=10,pady=10)
         
-        Button(frame, text='Create Group', command=self.create_group_request).grid(row= 2,column = 0)
+        Button(frame, text='Create/Amend Group', command=self.create_group_request).grid(row= 2,column = 0)
        
       
         return
