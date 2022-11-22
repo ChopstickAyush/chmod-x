@@ -44,8 +44,8 @@ class GUI:
     :type sign_up_button: Button
     :param group_name_widget: This is where the group name is inputted while creating a group
     :type group_name_widget: Entry
-    :param members_widget: This is the comma separted values of the members who are to be added into the group
-    :type members_widget: Entry
+    :param add_members_widget: This is the comma separted values of the members who are to be added into the group
+    :type add_members_widget: Entry
     :param join_group_name_widget: This is where the group name is inputted while joining a group
     :type join_group_name_widget: Entry
      """
@@ -75,7 +75,7 @@ class GUI:
         self.join_group_button = None
         self.sign_up_button = None
         self.group_name_widget = None
-        self.members_widget = None
+        self.add_members_widget = None
         self.join_group_name_widget = None
         self.select_image_button = None
         self.current_index = 0
@@ -289,11 +289,17 @@ class GUI:
         self.group_name_widget.grid(row=0,column=1,padx=10,pady=10)
         
         #password
-        Label(frame, text='Members(enter CSV):', font=("arial", 13,"bold")).grid(row=1,column=0,padx=5,pady=10)
-        self.members_widget = Entry(frame, width=40,font=("arial", 13))
-        self.members_widget.grid(row=1,column=1,padx=10,pady=10)
+        Label(frame, text='Add Members(enter CSV):', font=("arial", 13,"bold")).grid(row=1,column=0,padx=5,pady=10)
+        self.add_members_widget = Entry(frame, width=40,font=("arial", 13))
+        self.add_members_widget.grid(row=1,column=1,padx=10,pady=10)
         
-        Button(frame,width=20 ,text='Create/Amend Group', command=(lambda : self.create_group_request(top))).grid(row= 2,column = 0)
+
+        Label(frame, text='Remove Members(enter CSV):', font=("arial", 13,"bold")).grid(row=2,column=0,padx=5,pady=10)
+        self.remove_members_widget = Entry(frame, width=40,font=("arial", 13))
+        self.remove_members_widget.grid(row=2,column=1,padx=10,pady=10)
+
+
+        Button(frame,width=20 ,text='Create/Amend Group', command=(lambda : self.create_group_request(top))).grid(row= 3,column = 0)
        
       
         return
@@ -304,14 +310,15 @@ class GUI:
         :param top: This is the popup window
         :type top: TopLevel
         """
-        members_list = self.members_widget.get().strip().split(',')
-        
+        add_members_list = self.add_members_widget.get().strip().split(',')
+        remove_members_list = self.remove_members_widget.get().strip().split(',')
         
 
-        for i in range(len(members_list)):
-            members_list[i] = members_list[i].strip()
-
-        grp_head=json.dumps({"members" : members_list, "groupname" : self.group_name_widget.get().strip()})
+        for i in range(len(add_members_list)):
+            add_members_list[i] = add_members_list[i].strip()
+        for i in range(len(remove_members_list)):
+            remove_members_list[i] = remove_members_list[i].strip()
+        grp_head=json.dumps({"members_to_add" : add_members_list,"members_to_remove" : remove_members_list ,"groupname" : self.group_name_widget.get().strip()})
 
         request = (grp_head).encode('utf-8')
         header = f"R{len(request):<{HEADER_LENGTH}}".encode('utf-8')
@@ -351,7 +358,7 @@ class GUI:
         """
         request = (grpname).encode('utf-8')
         header = f"J{len(request):<{HEADER_LENGTH}}".encode('utf-8')
-        self.current_client_socket.send(header + request)   
+        self.current_client_socket.send(header + request)       
         top.destroy()
         self.join_group_button['text'] = 'Change Group'
         self.select_image_button.config(state = 'normal')
@@ -494,9 +501,9 @@ class GUI:
 #the mail function 
 if __name__ == '__main__':
     # proxy = xmlrpc.client.ServerProxy("http://localhost:8080/")
-    ports = [1234,1235,1236]
+    ports = [1234,1235]
     root = Tk()
     gui = GUI(root, ports)
     root.protocol("WM_DELETE_WINDOW", gui.on_close_window)
     root.mainloop()
-    # proxy.kill()
+    # proxy.kill()p.

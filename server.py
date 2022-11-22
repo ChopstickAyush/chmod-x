@@ -17,12 +17,10 @@ PORT = int(sys.argv[1])
 
 class Client:
     socket = None
-    current_group = None
     userdetails = None
 
-    def __init__(self, socket, current_group, userdetails):
+    def __init__(self, socket, userdetails):
         self.socket = socket
-        self.current_group = current_group
         self.userdetails = userdetails
 
 
@@ -164,7 +162,7 @@ while True:
 
             # Also save username and username header
             clients[client_socket] = Client(
-                client_socket, None, userdetails['user'])
+                client_socket, userdetails['user'])
 
             print('Accepted new connection from {}:{}, username: {}'.format(
                 *client_address, userdetails['user']))
@@ -194,20 +192,28 @@ while True:
                 details = json.loads(message['data'].decode('utf-8'))
                 group_name = details['groupname']
 
-                users_list = details['members']
-                users_lst = []
-                for i in users_list:
+                users_list_add = details['members_to_add']
+                users_list_remove = details['members_to_remove']
+                users_lst_add = []
+                users_lst_remove = []
+                for i in users_list_add:
                     if not check_user_name(i, cursor) or (i == username):
                         print(i, ' is and invalid username!')
                     else:
-                        users_lst.append(i)
+                        users_lst_add.append(i)
+                for i in users_list_remove:
+                    if not check_user_name(i, cursor):
+                        print(i, ' is and invalid username!')
+                    else:
+                        users_lst_remove.append(i)
 
-                users_lst.append(username)
-                users_lst = users_lst[::-1]
+                users_lst_add.append(username)
+                users_lst_add = users_lst_add[::-1]
 
-                for i in users_lst:
-                    enter_group(i, group_name)
-
+                for i in users_lst_add:
+                    enter_group(i,username ,group_name)
+                for i in users_lst_remove:
+                    remove_users_from_group(i,group_name,username,cursor)
             elif message['header'].decode('utf-8')[0] == 'J':
                 group_name = message['data'].decode('utf-8')
                 print(username, group_name)
@@ -220,10 +226,10 @@ while True:
                 header = f"E{len(msg):<{HEADER_LENGTH}}".encode('utf-8') 
                 notified_socket.send(header + msg)
                 
-                clients[notified_socket].current_group = group_name
+                set_current_group(clients[notified_socket].userdetails,group_name,cursor)
                 for cs in clients:
                     # But don't sent it to sender
-                    if cs != notified_socket and clients[cs].current_group == group_name:
+                    if cs != notified_socket and get_current_group(clients[cs].userdetails,cursor) == group_name:
                         # Send user and message (both with their headers)
                         other_user = clients[cs].userdetails
                         join_message_to_others = (
@@ -258,19 +264,19 @@ while True:
                 # user = clients[notified_socket]
 
                 # print(userdetails['user'])
-                group_name = clients[notified_socket].current_group
+                group_name = get_current_group(clients[notified_socket].userdetails,cursor)
             
                 if (message['header'].decode('utf-8')[0] == 'M') :
                     sendmsg(username, group_name , cursor,
                         message["data"].decode("utf-8"))
                     print(
-                        f'Received message from {username}: {message["data"].decode("utf-8")}')
+                        f'Received message from {username}: {message["data"].decode("utf-8")} in group{group_name}')
 
                 # Iterate over connected clients and broadcast message
                 for cs in clients:
 
                     # But don't sent it to sender
-                    if cs != notified_socket and clients[cs].current_group == group_name:
+                    if cs != notified_socket and get_current_group(clients[cs].userdetails,cursor) == group_name:
 
                         # Send user and message (both with their headers)
                         # pdb.set_trace()

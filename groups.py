@@ -18,7 +18,8 @@ def create_tables(cursor) :
         DROP TABLE IF EXISTS Users cascade; 
         CREATE TABLE IF NOT EXISTS Users (
         Name VARCHAR ( 20 ) PRIMARY KEY,
-        Password VARCHAR ( 72 ) NOT NULL
+        Password VARCHAR ( 72 ) NOT NULL,
+        CurrentGroup VARCHAR ( 20 ) DEFAULT NULL
         );
 
         DROP TABLE IF EXISTS UserGroupInfo cascade;
@@ -194,24 +195,49 @@ def add_user(name, password, cursor):
         cursor.execute(insert)
         print('User Added!')
 
-def get_all_users(cursor,ex=None):
-    if ex is None:
-        query = f'''SELECT Name From Users;'''
-    else:
-        query = f'''SELECT Name From Users WHERE Name != \'{ex}\''''
-    cursor.execute(query)
-    names = []
-    lst = cursor.fetchall()
-    if (lst == None): return []
-    else:
-        for i in lst:
-            names.append(i[0])
-        return names
 
+def remove_users_from_group(name,grpname,admin,cursor):
+    grpquery = f'''
+    Select count(*) from UserGroupInfo where GroupName = \'{grpname}\'
+    '''
+    cursor.execute(grpquery)
+    count = cursor.fetchone()[0]
+    #pdb.set_trace()
+    if count == 0 : 
+        return
+    else:
+        getadminquery = f'''
+            Select Name FROM UserGroupInfo WHERE Isadmin = TRUE
+            '''
+        cursor.execute(getadminquery)
+
+        Admin = cursor.fetchone()[0]
+        # to do proper error messages
+        if Admin != admin:
+            return
+        checkAdmin = f'''
+            Select Isadmin FROM UserGroupInfo WHERE Name =\'{name}\' AND GroupName =\'{grpname}\'
+            '''
+        cursor.execute(checkAdmin)
+
+        result = cursor.fetchone()[0]
+
+        if result == True:
+            query = f'''DELETE FROM UserGroupInfo WHERE GroupName =\'{grpname}\' '''
+            cursor.execute(query)
+            query = f'''DELETE FROM Groups WHERE GroupName =\'{grpname}\' '''
+            cursor.execute(query)
+            return
+        else:
+            query = f'''DELETE FROM UserGroupInfo WHERE Name =\'{name}\' AND GroupName =\'{grpname}\' '''
+            cursor.execute(query)
+            return
+
+    
 
 #temporary function
 #it doesnt check if the user is already present or not
-def enter_group(name,grpname):
+def enter_group(name,admin,grpname):
     grpquery = f'''
     Select count(*) from UserGroupInfo where GroupName = \'{grpname}\'
     '''
@@ -229,6 +255,15 @@ def enter_group(name,grpname):
             '''
         cursor.execute(insertnamesquery)
     else:
+        getadminquery = f'''
+            Select Name FROM UserGroupInfo WHERE Isadmin = TRUE
+            '''
+        cursor.execute(getadminquery)
+
+        Admin = cursor.fetchone()[0]
+        # to do proper error messages
+        if Admin != admin:
+            return
         checkquery = f'''
             Select * FROM UserGroupInfo WHERE Name =\'{name}\' AND GroupName =\'{grpname}\'
             '''
@@ -242,6 +277,16 @@ def enter_group(name,grpname):
             '''
         cursor.execute(insertnamesquery)
 
+
+def set_current_group(name,grpname,cursor):
+    query = f'''UPDATE Users Set CurrentGroup = \'{grpname}\' WHERE Name =\'{name}\''''
+    cursor.execute(query)
+
+def get_current_group(name,cursor):
+    query = f'''SELECT CurrentGroup From Users WHERE Name =\'{name}\''''
+    cursor.execute(query)
+    result = cursor.fetchone()[0]
+    return result
 #Creating a cursor object using the cursor() method
 cursor = conn.cursor()
 
