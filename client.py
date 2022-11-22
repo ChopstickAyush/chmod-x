@@ -1,7 +1,13 @@
+import io
 from tkinter import Tk,Toplevel ,Frame, Scrollbar, Label, END, Entry, Text, VERTICAL, Button, messagebox, Checkbutton, IntVar #Tkinter Python Module for GUI  
+import tkinter as tk
+from tkinter.filedialog import askopenfilename
+from PIL import Image, ImageTk
 import socket #Sockets for network connection
 import threading # for multiple proccess 
 import json
+import pickle
+import numpy as np
 
 
 HEADER_LENGTH = 10
@@ -128,29 +134,42 @@ class GUI:
             length = int(filtered_msg[1:])
 
 
-            message = so.recv(length).decode('utf-8')
+            message = so.recv(length)
             # Receive and decode username
-            
-            if filtered_msg[0] == 'E':
-                if message == "err_0":
+            if filtered_msg[0] == 'R':
+                self.users = eval(message.decode('utf-8'))
+                continue
+            elif filtered_msg[0] == 'E':
+                if message.decode('utf-8') == "err_0":
                     messagebox.showerror("Invalid GroupName", "Either the group doesn't exist or you're not in the group!")
                 else:
                     self.enter_text_widget.config(state='normal')
                     if self.current_group is not None:
                         self.chat_transcript_area.insert('end',f'You have left {self.current_group}!' +'\n')
                         self.chat_transcript_area.yview(END)
-                    self.current_group = message
+                    self.current_group = message.decode('utf-8')
                     self.chat_transcript_area.insert('end',f'You have joined {self.current_group}!' +'\n')
                     self.chat_transcript_area.yview(END)
+            
+            elif filtered_msg[0] == 'I' :
+                # window = Toplevel(self.root)
+                # canvas = tk.Canvas(window, width=300, height=300)
+                # canvas.pack()
+                # img = tk.PhotoImage(data=message)
+                # canvas.create_image(20, 20, anchor=tk.NW, image=img)
+                print(message)
+                image = Image.open(io.BytesIO(message))
+                image.show()
+
             else:
                 
                 self.chat_transcript_area.tag_config('warning', foreground="green")
                 # Now do the same for message (as we received username, we received whole message, there's no need to check if it has any length)
-                if ":" in message:
-                    self.chat_transcript_area.insert('end',message + '\n')
+                if ":" in message.decode('utf-8'):
+                    self.chat_transcript_area.insert('end',message.decode('utf-8') + '\n')
                     self.chat_transcript_area.yview(END)
                 else:
-                    self.chat_transcript_area.insert('end',message + '\n','warning')
+                    self.chat_transcript_area.insert('end',message.decode('utf-8') + '\n','warning')
                     self.chat_transcript_area.yview(END)
 
         print('closed!')
@@ -394,11 +413,23 @@ class GUI:
         """
         username = self.name_widget.get().strip() +": "
         data = self.enter_text_widget.get(1.0, 'end').strip()
+        ####### FILE INPUT ############
+        filename = askopenfilename()
+        f = open(filename, 'rb')
+        send = b""
+        data1 = f.read()
+        while data1 : 
+            send += data1
+            data1 = f.read(1024)
+            
+        img_header = f"I{len(send):<{HEADER_LENGTH}}".encode('utf-8')
+        self.client_socket.send(img_header + send)
+        
         if data != "":
             message = data.encode('utf-8')
             self.chat_transcript_area.insert('end', username+message.decode('utf-8') + '\n')
             self.chat_transcript_area.yview(END)
-            message_header = f"M{len(message):<{HEADER_LENGTH}}".encode('utf-8')
+            message_header = f"M{len(message.decode('utf-8')):<{HEADER_LENGTH}}".encode('utf-8')
             self.client_socket.send(message_header + message)
 
         self.enter_text_widget.delete(1.0, 'end')
