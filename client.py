@@ -188,7 +188,7 @@ class GUI:
         
         #password
         Label(frame, text='Password:', font=("arial", 13,"bold")).grid(row=1,column=0,padx=5,pady=10)
-        self.pass_widget = Entry(frame, width=40,font=("arial", 13))
+        self.pass_widget = Entry(frame,show="*" ,width=40,font=("arial", 13))
         self.pass_widget.grid(row=1,column=1,padx=10,pady=10)
 
 
@@ -228,13 +228,7 @@ class GUI:
         self.select_image_button.grid(row =3 , column =1, padx=10)
         frame.pack(side='top')
 
-    # def display_chat_entry_box(self): 
-    #     """
-    #     This displays the chat entry box inside the GUI
-    #     """  
-    #     # frame = Frame()
-        
-    #     # frame.pack(side='bottom')
+
 
     def send_image(self):
         filename = askopenfilename()
