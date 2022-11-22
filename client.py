@@ -256,7 +256,7 @@ class GUI:
                 messagebox.showerror(
                 "Invalid username/password", "The user already exists!")
             else:
-                messagebox.showerror(
+                messagebox.showinfo(
                 "Success!", "You have successfully registered!")
             self.has_registered = True
     

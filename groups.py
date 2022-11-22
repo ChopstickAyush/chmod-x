@@ -152,40 +152,6 @@ def creategrp(grpname, names, cursor) :
             cursor.execute(insertnamesquery)
 
     return 
-
-def join_group(user_name,cursor):
-    while True:
-        print('Enter OPTION \n 1. Enter a group \n 2. Join a group  \n 3. Exit')
-        x = int(input(">>>"))
-        if x == 1:
-            print("Enter Group Name")
-            grp=input(">>>>")
-            check_group(grp, user_name, cursor)
-                
-        if x == 2 :
-            grpname=input("Enter Group Name")
-            L1=[user_name]
-            print("Enter Members ")
-            print("Enter 1. Member Name \n 2. 0 to create group ")
-            x=input(">>>")
-            while x!="0":
-                while check_user_name(x, cursor)==False:
-                    print("NOT A member Enter again")
-                    x=input(">>>")
-                L1.append(x)
-                print("Enter 1.Member Name \n 2.0 to creste group")
-                x=input(">>>")           
-            a= creategrp(grpname,L1,cursor)
-            while a==False:
-                print("Name Already In Use. Try another")
-                print("Enter Groupname")
-                grpname=input(">>>")
-                a= creategrp(grpname,L1,cursor)
-            if a==True:
-                print("group created")
-            
-        if x==3:
-            break
             
 def check_group(grp, username, cursor) :
 
@@ -289,47 +255,4 @@ cursor = conn.cursor()
 create_tables(cursor)
 #creategrp()
 # print('Welcome')
-def userloop(cursor):
-    while True:
-        print('Enter OPTION \n 1. Existing User \n 2. New User \n 3. Exit')
-        x=int(input(">>>"))
-        if x==1:
-          print("Enter Username")
-          user_name = input(">>>")
-          lst = check_user_name(user_name, cursor)
-          if lst != False:
-            print("Enter Password")
-            password = input(">>>")
-            while password != lst[1]:
-                 print("Incorrect Password!! Enter Password Again")
-                 password = input(">>>")
-            join_group(user_name,cursor)
-          else:
-                 print("Not a Existing User")       
-        elif(x==2):
-            print("Type your username")
-            user_name = input(">>>")
-            lst = check_user_name(user_name, cursor)
-            if lst != False:
-              print("Already Existing Try Another")
-              user_name = input(">>>")
-            print("Enter Password")
-            password = input(">>>")
-            print("Enter Password Again")
-            mypassword = input(">>>")
-            while mypassword!= password:
-                print("Don't Match Enter Again")
-                print("Enter Password")
-                password = input(">>>")
-                print("Enter Password Again")
-                mypassword = input(">>>") 
-            insert = f'''
-            INSERT INTO Users (Name, Password) VALUES ('{user_name}', '{password}');
-            '''
-            cursor.execute(insert)
-            print("Successfully Registered")   
-        else:
-            break
 
-#Closing the connection
-#conn.close()
