@@ -47,6 +47,11 @@ class GUI:
     last_received_message = None
     
     def __init__(self, master):
+        """
+        This is the constructor for the GUI class\n
+        :param master: This main Tkinter Window
+        :type master: Tk
+        """
         # self.proxy = proxy
         self.client_socket = None
         self.root = master
@@ -68,12 +73,18 @@ class GUI:
         
 
     def initialize_socket(self):
+        """
+        This is used to initialize the client side socket
+        """
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # initialazing socket with TCP and IPv4
         remote_ip = '127.0.0.1' # IP address 
         remote_port = 1234 #TCP port
         self.client_socket.connect((remote_ip, remote_port)) #connect to the remote server
 
     def initialize_gui(self): # GUI initializer
+        """
+        This is the GUI initializer
+        """
         self.root.title("Socket Chat") 
         self.root.resizable(0, 0)
         self.display_name_section()
@@ -84,6 +95,9 @@ class GUI:
         
     
     def listen_for_incoming_messages_in_a_thread(self):
+        """
+        This runs the function receive_message_from_server in a parallel thread.
+        """
         thread = threading.Thread(target=self.receive_message_from_server, args=(self.client_socket,)) # Create a thread for the send and receive in same time 
         thread.start()
         
@@ -92,7 +106,11 @@ class GUI:
 
 
     def receive_message_from_server(self, so):
-
+        """
+        This is used to recieve and handle all kinds of messages/responses from the server
+        :param so: This is the client socket object
+        :type so: socket
+        """
         while True:
 
             header = so.recv(HEADER_LENGTH+1)
@@ -144,6 +162,9 @@ class GUI:
     #2. b - recieve all users
 
     def display_name_section(self):
+        """
+        This displays the section with username, password, create and join group inside the main GUI
+        """
         frame = Frame()
         frame.pack()
 
@@ -173,6 +194,9 @@ class GUI:
         self.join_group_button.grid(row=3,column=2,padx=10)
 
     def display_chat_box(self):
+        """
+        This displays the chatbox in the GUI
+        """
         frame = Frame()
         Label(frame, text='Chat Box', font=("arial", 12,"bold")).pack(side='top', padx=270)
         self.chat_transcript_area = Text(frame, width=60, height=10, font=("arial", 12))
@@ -183,7 +207,10 @@ class GUI:
         scrollbar.pack(side='right', fill='y',padx=1)
         frame.pack(side='left')
 
-    def display_chat_entry_box(self):   
+    def display_chat_entry_box(self): 
+        """
+        This displays the chat entry box inside the GUI
+        """  
         frame = Frame()
         Label(frame, text='Enter Your Message Here!', font=("arial", 12,"bold")).pack(side='top', anchor='w', padx=120)
         self.enter_text_widget = Text(frame, width=50, height=10, font=("arial", 12))
@@ -194,7 +221,9 @@ class GUI:
 
 
     def display_create_group_window(self):
-
+        """
+        This is the popup window that opens upon pressing the Creata/Amend Group button
+        """
         
         
         top= Toplevel(self.root)
@@ -225,6 +254,11 @@ class GUI:
         return
     
     def create_group_request(self,top):
+        """
+        This sends a request to the server to create/amend a group and add members to it
+        :param top: This is the popup window
+        :type top: TopLevel
+        """
         members_list = self.members_widget.get().strip().split(',')
         
         
@@ -244,6 +278,9 @@ class GUI:
 
         # Label(top, text= "Hello World!", font=('Mistral 18 bold')).place(x=150,y=80)
     def display_join_group_window(self):
+        """
+        This is the popup window that opens upon clicking Join Group button
+        """
         top= Toplevel(self.root)
         top.resizable(0, 0)
         top.title("Join a Group")
@@ -260,7 +297,13 @@ class GUI:
 
         
     def join_group(self,grpname,top):
-        
+        """
+        This sends a request to the server when a client wants to join a group
+        :param grpname: This is the group name
+        :type top: string
+        :param top: This is the popup window
+        :type top: TopLevel
+        """
         request = (grpname).encode('utf-8')
         header = f"J{len(request):<{HEADER_LENGTH}}".encode('utf-8')
         self.client_socket.send(header + request)   
