@@ -208,7 +208,13 @@ while True:
                 group_name = message['data'].decode('utf-8')
                 print(username, group_name)
                 if not check_group(group_name,username,cursor):
+                    msg = 'err_0'.encode('utf-8')
+                    header = f"E{len(msg):<{HEADER_LENGTH}}".encode('utf-8') 
+                    notified_socket.send(header + msg)
                     continue
+                msg = group_name.encode('utf-8')
+                header = f"E{len(msg):<{HEADER_LENGTH}}".encode('utf-8') 
+                notified_socket.send(header + msg)
                 
                 clients[notified_socket].current_group = group_name
                 for cs in clients:

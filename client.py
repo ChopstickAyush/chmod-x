@@ -44,11 +44,13 @@ class GUI:
     def listen_for_incoming_messages_in_a_thread(self):
         thread = threading.Thread(target=self.receive_message_from_server, args=(self.client_socket,)) # Create a thread for the send and receive in same time 
         thread.start()
+        
     #function to recieve msg
 
 
 
     def receive_message_from_server(self, so):
+
         while True:
 
             header = so.recv(HEADER_LENGTH+1)
@@ -72,6 +74,17 @@ class GUI:
                 print(message)
                 self.users = eval(message)
                 continue
+            elif filtered_msg[0] == 'E':
+                if message == "err_0":
+                    print('fail')
+                else:
+                    self.enter_text_widget.config(state='normal')
+                    if self.current_group is not None:
+                        self.chat_transcript_area.insert('end',f'You have left {self.current_group}!' +'\n')
+                        self.chat_transcript_area.yview(END)
+                    self.current_group = message
+                    self.chat_transcript_area.insert('end',f'You have joined {self.current_group}!' +'\n')
+                    self.chat_transcript_area.yview(END)
             else:
                 
                 self.chat_transcript_area.tag_config('warning', foreground="green")
@@ -83,7 +96,7 @@ class GUI:
                     self.chat_transcript_area.insert('end',message + '\n','warning')
                     self.chat_transcript_area.yview(END)
 
-
+        print('closed!')
         so.close()
 
 
@@ -137,6 +150,7 @@ class GUI:
         frame = Frame()
         Label(frame, text='Enter Your Message Here!', font=("arial", 12,"bold")).pack(side='top', anchor='w', padx=120)
         self.enter_text_widget = Text(frame, width=50, height=10, font=("arial", 12))
+        self.enter_text_widget.config(state='disabled')
         self.enter_text_widget.pack(side='left', pady=10, padx=10)
         self.enter_text_widget.bind('<Return>', self.on_enter_key_pressed)
         frame.pack(side='left')
@@ -168,7 +182,7 @@ class GUI:
         self.members_widget = Entry(frame, width=40,font=("arial", 13))
         self.members_widget.grid(row=1,column=1,padx=10,pady=10)
         
-        Button(frame, text='Create/Amend Group', command=self.create_group_request).grid(row= 2,column = 0)
+        Button(frame,width=20 ,text='Create/Amend Group', command=self.create_group_request).grid(row= 2,column = 0)
        
       
         return
@@ -207,14 +221,17 @@ class GUI:
         self.join_group_name_widget = Entry(frame, width=40,font=("arial", 13))
         self.join_group_name_widget.grid(row=0,column=1,padx=10,pady=10)
         
-        
   
-        def send_group_name(grpname):
-            #J is Join Group request code
-            request = (grpname).encode('utf-8')
-            header = f"J{len(request):<{HEADER_LENGTH}}".encode('utf-8')
-            self.client_socket.send(header + request)   
-        Button(frame, text='Join Group', command=(lambda : send_group_name(self.join_group_name_widget.get().strip()))).grid(row= 2,column = 0)  
+        
+                
+        Button(frame, text='Join Group', command=(lambda : self.join_group(self.join_group_name_widget.get().strip()))).grid(row= 2,column = 0)  
+
+        
+    def join_group(self,grpname):
+        
+        request = (grpname).encode('utf-8')
+        header = f"J{len(request):<{HEADER_LENGTH}}".encode('utf-8')
+        self.client_socket.send(header + request)   
 
 
 
@@ -268,7 +285,7 @@ class GUI:
             ##get validation message
 
 
-            self.chat_transcript_area.insert('end','You have joined the server!' + '\n')
+            # self.chat_transcript_area.insert('end','You have joined the server!' + '\n')
             self.chat_transcript_area.yview(END)
             self.has_joined = True
             self.name_widget.config(state='disabled')
