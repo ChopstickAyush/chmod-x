@@ -75,6 +75,7 @@ class GUI:
         self.group_name_widget = None
         self.members_widget = None
         self.join_group_name_widget = None
+        self.select_image_button = None
         self.initialize_gui()
         
 
@@ -94,7 +95,6 @@ class GUI:
         self.root.title("Socket Chat") 
         self.root.resizable(0, 0)
         self.display_name_section()
-        self.display_chat_entry_box()
         self.display_chat_box()
         
         
@@ -152,12 +152,6 @@ class GUI:
                     self.chat_transcript_area.yview(END)
             
             elif filtered_msg[0] == 'I' :
-                # window = Toplevel(self.root)
-                # canvas = tk.Canvas(window, width=300, height=300)
-                # canvas.pack()
-                # img = tk.PhotoImage(data=message)
-                # canvas.create_image(20, 20, anchor=tk.NW, image=img)
-                print(message)
                 image = Image.open(io.BytesIO(message))
                 image.show()
 
@@ -217,26 +211,42 @@ class GUI:
         This displays the chatbox in the GUI
         """
         frame = Frame()
-        Label(frame, text='Chat Box', font=("arial", 12,"bold")).pack(side='top', padx=270)
+        Label(frame, text='Chat Box', font=("arial", 12,"bold")).grid(row=0, column=0, padx=100)
         self.chat_transcript_area = Text(frame, width=60, height=10, font=("arial", 12))
         scrollbar = Scrollbar(frame, command=self.chat_transcript_area.yview, orient=VERTICAL)
         self.chat_transcript_area.config(yscrollcommand=scrollbar.set)
         self.chat_transcript_area.bind('<KeyPress>', lambda e: 'break')
-        self.chat_transcript_area.pack(side='left', padx=15, pady=10)
-        scrollbar.pack(side='right', fill='y',padx=1)
-        frame.pack(side='left')
+        self.chat_transcript_area.grid(row=1,column=0, padx=10, pady=10)
+        scrollbar.grid(row =1 ,column=1,columnspan=7)
 
-    def display_chat_entry_box(self): 
-        """
-        This displays the chat entry box inside the GUI
-        """  
-        frame = Frame()
-        Label(frame, text='Enter Your Message Here!', font=("arial", 12,"bold")).pack(side='top', anchor='w', padx=120)
-        self.enter_text_widget = Text(frame, width=50, height=10, font=("arial", 12))
+        Label(frame, text='Enter Your Message Here!', font=("arial", 12,"bold")).grid(row =2 , column= 0, padx=100)
+        self.enter_text_widget = Text(frame, width=60,height=2 ,font=("arial", 12))
         self.enter_text_widget.config(state='disabled')
-        self.enter_text_widget.pack(side='left', pady=10, padx=10)
+        self.enter_text_widget.grid(row =3 , column= 0, pady=10, padx=10)
         self.enter_text_widget.bind('<Return>', self.on_enter_key_pressed)
-        frame.pack(side='left')
+        self.select_image_button = Button(frame, text="Send Image", width=10, command=self.send_image, state='disabled')
+        self.select_image_button.grid(row =3 , column =1, padx=10)
+        frame.pack(side='top')
+
+    # def display_chat_entry_box(self): 
+    #     """
+    #     This displays the chat entry box inside the GUI
+    #     """  
+    #     # frame = Frame()
+        
+    #     # frame.pack(side='bottom')
+
+    def send_image(self):
+        filename = askopenfilename()
+        f = open(filename, 'rb')
+        send = b""
+        data1 = f.read()
+        while data1 : 
+            send += data1
+            data1 = f.read(1024)
+            
+        img_header = f"I{len(send):<{HEADER_LENGTH}}".encode('utf-8')
+        self.client_socket.send(img_header + send)
 
 
     def display_create_group_window(self):
@@ -328,6 +338,7 @@ class GUI:
         self.client_socket.send(header + request)   
         top.destroy()
         self.join_group_button['text'] = 'Change Group'
+        self.select_image_button.config(state = 'normal')
 
 
     def on_signup(self):
@@ -413,18 +424,6 @@ class GUI:
         """
         username = self.name_widget.get().strip() +": "
         data = self.enter_text_widget.get(1.0, 'end').strip()
-        ####### FILE INPUT ############
-        filename = askopenfilename()
-        f = open(filename, 'rb')
-        send = b""
-        data1 = f.read()
-        while data1 : 
-            send += data1
-            data1 = f.read(1024)
-            
-        img_header = f"I{len(send):<{HEADER_LENGTH}}".encode('utf-8')
-        self.client_socket.send(img_header + send)
-        
         if data != "":
             message = data.encode('utf-8')
             self.chat_transcript_area.insert('end', username+message.decode('utf-8') + '\n')
