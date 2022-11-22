@@ -249,20 +249,18 @@ while True:
                             'utf-8') + message_to_send
                         notified_socket.send(message_)
 
-            elif message['header'].decode('utf-8')[0] == 'M':
+            elif message['header'].decode('utf-8')[0] == 'M' or message['header'].decode('utf-8')[0] == 'I':
                 # Get user by notified socket, so we will know who sent the message
                 # user = clients[notified_socket]
 
                 # print(userdetails[1])
                 group_name = clients[notified_socket].current_group
-
-                sendmsg(username, group_name , cursor,
-                        message["data"].decode("utf-8"))
-
             
-
-                print(
-                    f'Received message from {username}: {message["data"].decode("utf-8")}')
+                if (message['header'].decode('utf-8')[0] == 'M') :
+                    sendmsg(username, group_name , cursor,
+                        message["data"].decode("utf-8"))
+                    print(
+                        f'Received message from {username}: {message["data"].decode("utf-8")}')
 
                 # Iterate over connected clients and broadcast message
                 for cs in clients:
@@ -272,13 +270,21 @@ while True:
 
                         # Send user and message (both with their headers)
                         # pdb.set_trace()
-                        message_to_send = (
-                            username+": ").encode('utf-8') + message['data']
+                        message_to_send = message['data']
                         message_len = len(message_to_send)
-                        message_ = f"M{message_len:<{HEADER_LENGTH}}".encode(
-                            'utf-8') + message_to_send
+                        message_ = None
+                        if (message['header'].decode('utf-8')[0] == 'M') :
+                            message_to_send = (
+                            username+": ").encode('utf-8') + message['data']
+                            message_len = len(message_to_send)
+                            message_ = f"M{message_len:<{HEADER_LENGTH}}".encode(
+                                'utf-8') + message_to_send
+                        elif (message['header'].decode('utf-8')[0] == 'I') :
+                            message_ = f"I{message_len:<{HEADER_LENGTH}}".encode(
+                                'utf-8') + message_to_send
                         # We are reusing here message header sent by sender, and saved username header send by user when he connected
                         cs.send(message_)
+
 
     # It's not really necessary to have this, but will handle some socket exceptions just in case
     for notified_socket in exception_sockets:
