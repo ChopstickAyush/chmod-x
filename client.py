@@ -238,6 +238,8 @@ class GUI:
 
     def send_image(self):
         filename = askopenfilename()
+        if filename == "":
+            return
         f = open(filename, 'rb')
         send = b""
         data1 = f.read()
