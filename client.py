@@ -312,6 +312,9 @@ class GUI:
 
 
     def on_signup(self):
+        """
+        This handles the signup request to the server
+        """
         if len(self.name_widget.get()) == 0 or len(self.pass_widget.get()) == 0:
             messagebox.showerror(
                 "Invalid username/password", "The username/password field cannot be blank!")
@@ -337,6 +340,9 @@ class GUI:
             self.has_registered = True
     
     def on_join(self):
+        """
+        This handles the join request to the server
+        """
         if len(self.name_widget.get()) == 0 or len(self.pass_widget.get()) == 0:
             messagebox.showerror(
                 "Invalid username/password", "The username/password field cannot be blank!")
@@ -383,6 +389,9 @@ class GUI:
         self.enter_text_widget.delete(1.0, 'end')
 
     def send_chat(self):
+        """
+        This sends the message to the server
+        """
         username = self.name_widget.get().strip() +": "
         data = self.enter_text_widget.get(1.0, 'end').strip()
         if data != "":
@@ -396,6 +405,9 @@ class GUI:
         return 'break'
 
     def on_close_window(self):
+        """
+        This handles exiting the GUI
+        """
         if messagebox.askokcancel("Quit", "Do you want to quit?"):
             self.root.destroy()
             self.client_socket.close()
