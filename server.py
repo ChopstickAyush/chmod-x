@@ -3,6 +3,7 @@ import socket
 import select
 import threading
 import json
+import sys
 # from xmlrpc.server import SimpleXMLRPCServer
 
 from groups import *
@@ -11,7 +12,7 @@ from groups import *
 HEADER_LENGTH = 10
 
 IP = "127.0.0.1"
-PORT = 1234
+PORT = int(sys.argv[1])
 
 
 class Client:
@@ -139,8 +140,10 @@ while True:
 
             userdetails = json.loads(userpass['data'])
 
+            print(userdetails)
             # err_1 validation failed
             if userdetails['token'] == 'join':
+                print('join request')
                 if not validate(userdetails['user'], userdetails['pass'], cursor):
                     client_socket.send("err_1".encode('utf-8'))
                     continue
@@ -148,6 +151,7 @@ while True:
                     client_socket.send("suc_0".encode('utf-8'))
 
             elif userdetails['token'] == 'register':
+                print('register request')
                 if check_user_name(userdetails['user'], cursor):
                     client_socket.send("err_2".encode('utf-8'))
                 else:
@@ -248,7 +252,7 @@ while True:
                         message_ = f"A{message_len:<{HEADER_LENGTH}}".encode(
                             'utf-8') + message_to_send
                         notified_socket.send(message_)
-
+            
             elif message['header'].decode('utf-8')[0] == 'M' or message['header'].decode('utf-8')[0] == 'I':
                 # Get user by notified socket, so we will know who sent the message
                 # user = clients[notified_socket]

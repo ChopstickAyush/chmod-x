@@ -52,14 +52,16 @@ class GUI:
     
     last_received_message = None
     
-    def __init__(self, master):
+    def __init__(self, master, ports):
         """
         This is the constructor for the GUI class\n
         :param master: This main Tkinter Window
         :type master: Tk
         """
         # self.proxy = proxy
-        self.client_socket = None
+        self.ports = ports
+        self.current_client_socket = None
+        self.client_sockets = []
         self.root = master
         self.chat_transcript_area = None
         self.has_joined = False
@@ -76,17 +78,27 @@ class GUI:
         self.members_widget = None
         self.join_group_name_widget = None
         self.select_image_button = None
+        self.current_index = 0
+        self.current_port = None
         self.initialize_gui()
         
+        
+    # def initialize_socket(self):
+    #     """
+    #     This is used to initialize the client side socket
+    #     """
+    #     self.current_client_socket = self.client_sockets[self.current_index] 
 
-    def initialize_socket(self):
+
+    def initialize_socket(self,remote_port):
         """
         This is used to initialize the client side socket
         """
-        self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # initialazing socket with TCP and IPv4
+        self.current_client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # initialazing socket with TCP and IPv4
         remote_ip = '127.0.0.1' # IP address 
-        remote_port = 1234 #TCP port
-        self.client_socket.connect((remote_ip, remote_port)) #connect to the remote server
+        self.current_client_socket.connect((remote_ip, remote_port))
+        # self.client_sockets.append(self.current_client_socket)
+
 
     def initialize_gui(self): # GUI initializer
         """
@@ -96,6 +108,8 @@ class GUI:
         self.root.resizable(0, 0)
         self.display_name_section()
         self.display_chat_box()
+        self.current_port = self.ports[self.current_index]
+        # self.initialize_sockets()
         
         
         
@@ -104,7 +118,15 @@ class GUI:
         """
         This runs the function receive_message_from_server in a parallel thread.
         """
-        thread = threading.Thread(target=self.receive_message_from_server, args=(self.client_socket,)) # Create a thread for the send and receive in same time 
+        # self.threads = []
+        # for port in self.ports:
+            
+        #     thread = threading.Thread(target=self.receive_message_from_server, args=(cs,)) # Create a thread for the send and receive in same time 
+        #     self.threads.append(thread)
+        
+        # for thread in self.threads:
+        #     thread.start()
+        thread = threading.Thread(target=self.receive_message_from_server, args=(self.current_client_socket,))
         thread.start()
         
     #function to recieve msg
@@ -120,8 +142,6 @@ class GUI:
         while True:
 
             header = so.recv(HEADER_LENGTH+1)
-
-            
             # If we received no data, server gracefully closed a connection, for example using socket.close() or socket.shutdown(socket.SHUT_RDWR)
             if not len(header):
                 self.chat_transcript_area.insert('end','Connection closed by the server' + '\n')
@@ -242,8 +262,8 @@ class GUI:
             data1 = f.read(1024)
             
         img_header = f"I{len(send):<{HEADER_LENGTH}}".encode('utf-8')
-        self.client_socket.send(img_header + send)
-
+        self.current_client_socket.send(img_header + send)
+        self.round_robin_load_switcher()
 
     def display_create_group_window(self):
         """
@@ -295,8 +315,8 @@ class GUI:
 
         request = (grp_head).encode('utf-8')
         header = f"R{len(request):<{HEADER_LENGTH}}".encode('utf-8')
-        self.client_socket.send(header + request)
-
+        self.current_client_socket.send(header + request)
+        self.round_robin_load_switcher()
         top.destroy()
 
 
@@ -331,11 +351,20 @@ class GUI:
         """
         request = (grpname).encode('utf-8')
         header = f"J{len(request):<{HEADER_LENGTH}}".encode('utf-8')
-        self.client_socket.send(header + request)   
+        self.current_client_socket.send(header + request)   
         top.destroy()
         self.join_group_button['text'] = 'Change Group'
         self.select_image_button.config(state = 'normal')
+        self.round_robin_load_switcher()
 
+    def round_robin_load_switcher(self):
+        print(self.current_index)
+        self.current_index = (self.current_index +1)%(len(self.ports))
+        self.current_client_socket= self.client_sockets[self.current_index]
+        print(self.current_index)
+        print(self.current_client_socket)
+        # self.initialize_socket(self.current_port)
+        # self.listen_for_incoming_messages_in_a_thread()
 
     def on_signup(self):
         """
@@ -346,7 +375,7 @@ class GUI:
                 "Invalid username/password", "The username/password field cannot be blank!")
             return
         if not self.has_registered:
-            self.initialize_socket()
+            self.initialize_socket(self.current_port)
             
      
             username = self.name_widget.get()
@@ -358,8 +387,8 @@ class GUI:
 
             userdetails = json.dumps({'token' : 'register','user' : username, 'pass' : pwdhash}).encode('utf-8')
             header = f"S{len(userdetails):<{HEADER_LENGTH}}".encode('utf-8')
-            self.client_socket.send(header + userdetails)
-            code = self.client_socket.recv(10).decode('utf-8')
+            self.current_client_socket.send(header + userdetails)
+            code = self.current_client_socket.recv(10).decode('utf-8')
 
             if code == 'err_2':
                 messagebox.showerror(
@@ -368,6 +397,7 @@ class GUI:
                 messagebox.showinfo(
                 "Success!", "You have successfully registered!")
             self.has_registered = True
+            
     
     def on_join(self):
         """
@@ -379,7 +409,7 @@ class GUI:
                 "Invalid username/password", "The username/password field cannot be blank!")
             return
         if not self.has_joined:
-            self.initialize_socket()
+            # self.initialize_socket(self.current_port)
             
             
             
@@ -390,26 +420,40 @@ class GUI:
             
             userdetails = json.dumps({'token' : 'join','user' : username, 'pass' : password}).encode('utf-8')
             header = f"A{len(userdetails):<{HEADER_LENGTH}}".encode('utf-8')
-            self.client_socket.send(header + userdetails)
-            code = self.client_socket.recv(10).decode('utf-8')
+            print("here")
+            # self.current_client_socket.send(header + userdetails)
+            # code = self.current_client_socket.recv(10).decode('utf-8')
+            # print(code)
+            for port in self.ports:
+                print("here")
+                # print(cs)
+                self.initialize_socket(port)
+                self.current_client_socket.send(header + userdetails)
+                code = self.current_client_socket.recv(10).decode('utf-8')
+                self.client_sockets.append(self.current_client_socket)
 
+            
             if code == 'err_1':
                 messagebox.showerror(
                 "Invalid username/password", "If The username is not registered, try using the Sign In button!")
                 return
             ##get validation message
-
-
-            # self.chat_transcript_area.insert('end','You have joined the server!' + '\n')
             self.chat_transcript_area.yview(END)
             self.has_joined = True
             self.name_widget.config(state='disabled')
             self.pass_widget.config(state='disabled')
 
+            
             self.create_group_button.config(state = 'normal')
             self.join_group_button.config(state = 'normal') 
-            self.listen_for_incoming_messages_in_a_thread()
-        
+
+            for cs in self.client_sockets:
+                self.current_client_socket = cs                
+                self.listen_for_incoming_messages_in_a_thread()
+           
+            
+            self.current_client_socket = self.client_sockets[self.current_index]
+            
 
     def on_enter_key_pressed(self, event):
         if len(self.name_widget.get()) == 0:
@@ -432,9 +476,10 @@ class GUI:
             self.chat_transcript_area.insert('end', username+message.decode('utf-8') + '\n')
             self.chat_transcript_area.yview(END)
             message_header = f"M{len(message.decode('utf-8')):<{HEADER_LENGTH}}".encode('utf-8')
-            self.client_socket.send(message_header + message)
+            self.current_client_socket.send(message_header + message)
 
         self.enter_text_widget.delete(1.0, 'end')
+        self.round_robin_load_switcher()
         return 'break'
 
     def on_close_window(self):
@@ -443,14 +488,15 @@ class GUI:
         """
         if messagebox.askokcancel("Quit", "Do you want to quit?"):
             self.root.destroy()
-            self.client_socket.close()
+            self.current_client_socket.close()
             exit(0)
 
 #the mail function 
 if __name__ == '__main__':
     # proxy = xmlrpc.client.ServerProxy("http://localhost:8080/")
+    ports = [1234,1235,1236]
     root = Tk()
-    gui = GUI(root)
+    gui = GUI(root, ports)
     root.protocol("WM_DELETE_WINDOW", gui.on_close_window)
     root.mainloop()
     # proxy.kill()
