@@ -99,18 +99,7 @@ def pendingmsg(username, grpname, cursor) :
             Update UserGroupInfo SET Time = ({curtime[0]})
             '''
             cursor.execute(updatetimequery)
-   
-
-    
-
     return rows
-
-def enter(user_name,grp_name,cursor):
-    messages = pendingmsg(user_name,grp_name,cursor)
-    if messages is not None:
-        print(messages)
-    
-    print("start chat")
 
     
 def creategrp(grpname, names, cursor) :

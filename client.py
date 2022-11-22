@@ -8,20 +8,62 @@ HEADER_LENGTH = 10
 
 
 class GUI:
-    client_socket = None
+    """
+    This is the implementation of the client side GUI, that interacts with the server.
+    :param client_socket: This holds the socket object initialized with TCP anf IPv4
+    :type client: socket
+    :param root: This is the main Tkinter window
+    :type root: Tk
+    :param chat_transcript_area: This is the box in the GUI where the chat appears
+    :type chat_transcript_area: Text
+    :param has_joined: This is a variable indicating whether the client has connected to the server.
+    :type has_joined: bool
+    :param has_registered: This is a variable indicating whether the client has been registered in the server side database
+    :type has_registered: bool
+    :param current_group: This indicates the current group the user is in
+    :type current_group:  string
+    :param name_widget: This is the Tkinter widget that takes the username input
+    :type name_widget: Entry
+    :param pass_widget: This is the Tkinter widget that takes the password input
+    :type pass_widget: Entry
+    :param enter_text_widget: This is the Tkinter widget that takes the chat message from the user
+    :type enter_text_widget: Entry
+    :param join_button: On pressing this button the user gets connected to the server
+    :type join_button: Button
+    :param create_group_button: This allows the client to create/amend any group(if it exists)
+    :type create_group_button: Button
+    :param join_group_button: This allows the client to join any group they it is already a member
+    :type join_group_button: Button
+    :param sign_up_button: This allows the client to resgiter their username into the server
+    :type sign_up_button: Button
+    :param group_name_widget: This is where the group name is inputted while creating a group
+    :type group_name_widget: Entry
+    :param members_widget: This is the comma separted values of the members who are to be added into the group
+    :type members_widget: Entry
+    :param join_group_name_widget: This is where the group name is inputted while joining a group
+    :type join_group_name_widget: Entry
+     """
+    
     last_received_message = None
     
     def __init__(self, master):
         # self.proxy = proxy
+        self.client_socket = None
         self.root = master
         self.chat_transcript_area = None
         self.has_joined = False
         self.has_registered = False
         self.current_group = None
         self.name_widget = None
+        self.pass_widget = None
         self.enter_text_widget = None
         self.join_button = None
-        self.users = None
+        self.create_group_button = None
+        self.join_group_button = None
+        self.sign_up_button = None
+        self.group_name_widget = None
+        self.members_widget = None
+        self.join_group_name_widget = None
         self.initialize_gui()
         
 
@@ -70,10 +112,8 @@ class GUI:
 
             message = so.recv(length).decode('utf-8')
             # Receive and decode username
-            if filtered_msg[0] == 'R':
-                self.users = eval(message)
-                continue
-            elif filtered_msg[0] == 'E':
+            
+            if filtered_msg[0] == 'E':
                 if message == "err_0":
                     messagebox.showerror("Invalid GroupName", "Either the group doesn't exist or you're not in the group!")
                 else:
@@ -212,15 +252,10 @@ class GUI:
         frame = Frame(top)
         frame.pack()
    
-        
-        
         Label(frame, text='Group Name:', font=("arial", 13,"bold")).grid(row=0,column=0,padx=5,pady=10)
         self.join_group_name_widget = Entry(frame, width=40,font=("arial", 13))
         self.join_group_name_widget.grid(row=0,column=1,padx=10,pady=10)
-        
-  
-        
-                
+     
         Button(frame, text='Join Group', command=(lambda : self.join_group(self.join_group_name_widget.get().strip(),top))).grid(row= 2,column = 0)  
 
         
