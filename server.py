@@ -137,22 +137,22 @@ while True:
             if userpass is False:
                 continue
 
-            userdetails = userpass['data'].decode('utf-8').split("_")
+            userdetails = json.loads(userpass['data'])
 
             # err_1 validation failed
-            if userdetails[0] == 'join':
-                if not validate(userdetails[1], userdetails[2], cursor):
+            if userdetails['token'] == 'join':
+                if not validate(userdetails['user'], userdetails['pass'], cursor):
                     client_socket.send("err_1".encode('utf-8'))
                     continue
                 else:
                     client_socket.send("suc_0".encode('utf-8'))
 
-            elif userdetails[0] == 'register':
-                if check_user_name(userdetails[1], cursor):
+            elif userdetails['token'] == 'register':
+                if check_user_name(userdetails['user'], cursor):
                     client_socket.send("err_2".encode('utf-8'))
                 else:
-                    add_user(userdetails[1], userdetails[2], cursor)
-                    # enter_group(userdetails[1], 'Test')
+                    add_user(userdetails['user'], userdetails['pass'], cursor)
+                    # enter_group(userdetails['user'], 'Test')
                     client_socket.send("suc_0".encode('utf-8'))
                 continue
             # Add accepted socket to select.select() list
@@ -160,10 +160,10 @@ while True:
 
             # Also save username and username header
             clients[client_socket] = Client(
-                client_socket, None, userdetails[1])
+                client_socket, None, userdetails['user'])
 
             print('Accepted new connection from {}:{}, username: {}'.format(
-                *client_address, userdetails[1]))
+                *client_address, userdetails['user']))
 
         # Else existing socket is sending a message
         else:
@@ -253,7 +253,7 @@ while True:
                 # Get user by notified socket, so we will know who sent the message
                 # user = clients[notified_socket]
 
-                # print(userdetails[1])
+                # print(userdetails['user'])
                 group_name = clients[notified_socket].current_group
             
                 if (message['header'].decode('utf-8')[0] == 'M') :

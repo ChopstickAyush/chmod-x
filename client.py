@@ -8,7 +8,7 @@ import threading # for multiple proccess
 import json
 import pickle
 import numpy as np
-
+import bcrypt
 
 HEADER_LENGTH = 10
 
@@ -350,11 +350,15 @@ class GUI:
             
      
             username = self.name_widget.get()
-            password = self.pass_widget.get()
+            password = self.pass_widget.get().encode('utf-8')
             
-            userpass = ("register_"+username+"_"+password).encode('utf-8')
-            header = f"S{len(userpass):<{HEADER_LENGTH}}".encode('utf-8')
-            self.client_socket.send(header + userpass)
+
+            salt = bcrypt.gensalt()
+            pwdhash = bcrypt.hashpw(password,salt).decode('utf-8')
+
+            userdetails = json.dumps({'token' : 'register','user' : username, 'pass' : pwdhash}).encode('utf-8')
+            header = f"S{len(userdetails):<{HEADER_LENGTH}}".encode('utf-8')
+            self.client_socket.send(header + userdetails)
             code = self.client_socket.recv(10).decode('utf-8')
 
             if code == 'err_2':
@@ -369,6 +373,7 @@ class GUI:
         """
         This handles the join request to the server
         """
+      
         if len(self.name_widget.get()) == 0 or len(self.pass_widget.get()) == 0:
             messagebox.showerror(
                 "Invalid username/password", "The username/password field cannot be blank!")
@@ -380,10 +385,12 @@ class GUI:
             
             username = self.name_widget.get()
             password = self.pass_widget.get()
+
+       
             
-            userpass = ("join_"+username+"_"+password).encode('utf-8')
-            header = f"A{len(userpass):<{HEADER_LENGTH}}".encode('utf-8')
-            self.client_socket.send(header + userpass)
+            userdetails = json.dumps({'token' : 'join','user' : username, 'pass' : password}).encode('utf-8')
+            header = f"A{len(userdetails):<{HEADER_LENGTH}}".encode('utf-8')
+            self.client_socket.send(header + userdetails)
             code = self.client_socket.recv(10).decode('utf-8')
 
             if code == 'err_1':

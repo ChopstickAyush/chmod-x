@@ -1,4 +1,5 @@
 from codecs import latin_1_decode
+import bcrypt
 import pdb
 from re import L
 import psycopg2
@@ -17,7 +18,7 @@ def create_tables(cursor) :
         DROP TABLE IF EXISTS Users cascade; 
         CREATE TABLE IF NOT EXISTS Users (
         Name VARCHAR ( 20 ) PRIMARY KEY,
-        Password VARCHAR ( 20 ) NOT NULL
+        Password VARCHAR ( 72 ) NOT NULL
         );
 
         DROP TABLE IF EXISTS UserGroupInfo cascade;
@@ -72,7 +73,7 @@ def pendingmsg(username, grpname, cursor) :
     Select Time from UserGroupInfo where Name=\'{username}\' AND GroupName=\'{grpname}\''''
     cursor.execute(gettimequery)
     time = cursor.fetchone()
-    print(time)
+    # print(time)
     if time is None :
         print("No pending messages")
         return
@@ -80,7 +81,7 @@ def pendingmsg(username, grpname, cursor) :
         time = time[0]
 
     # using this time to get list of messages after this time. 
-    print(time)
+    # print(time)
     # pdb.set_trace()
     getmessagequery = f'''
     Select Name, msg from Messages where Time > {time} AND GroupName = \'{grpname}\'
@@ -173,11 +174,15 @@ def check_user_name(name, cursor) :
 
 
 def validate(name, password ,cursor) :
-    validate = f"Select * from Users where Name = '{name}' and Password= '{password}'"
+    validate = f"Select Name, Password from Users where Name = '{name}'"
     cursor.execute(validate)
     lst = cursor.fetchone()
+    # print(lst)
     if (lst == None): return False
-    else : return True
+    else:
+        if bcrypt.checkpw(password.encode('utf-8'),lst[1].encode('utf-8')):
+            return True
+        return False
 
 
 def add_user(name, password, cursor):
