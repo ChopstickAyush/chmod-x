@@ -71,12 +71,11 @@ class GUI:
             message = so.recv(length).decode('utf-8')
             # Receive and decode username
             if filtered_msg[0] == 'R':
-                print(message)
                 self.users = eval(message)
                 continue
             elif filtered_msg[0] == 'E':
                 if message == "err_0":
-                    print('fail')
+                    messagebox.showerror("Invalid GroupName", "Either the group doesn't exist or you're not in the group!")
                 else:
                     self.enter_text_widget.config(state='normal')
                     if self.current_group is not None:
@@ -103,13 +102,6 @@ class GUI:
     #Requests
     #1. a - authenticate
     #2. b - recieve all users
-    # def receive_all_users_in_server(self):
-    #     request = ("Request To Get All Users!").encode('utf-8')
-    #     header = f"R{len(request):<{HEADER_LENGTH}}".encode('utf-8')
-    #     self.client_socket.send(header + request)
-
-    #     return
-        
 
     def display_name_section(self):
         frame = Frame()
@@ -125,15 +117,20 @@ class GUI:
         self.pass_widget = Entry(frame, width=40,font=("arial", 13))
         self.pass_widget.grid(row=1,column=1,padx=10,pady=10)
 
-        #groupname
-        # Label(frame, text='Group Name:', font=("arial", 13,"bold")).grid(row=2,column=0,padx=5,pady=10)
-        # self.group_widget = Entry(frame, width=40,font=("arial", 13))
-        # self.group_widget.grid(row=2,column=1,padx=10,pady=10)
 
-        self.join_button = Button(frame, text="Join", width=10, command=self.on_join).grid(row=0,column=2,padx=10)
-        self.sign_up_button = Button(frame, text="Sign Up", width=10, command=self.on_signup).grid(row=1,column=2,padx=10)
-        self.create_group_button = Button(frame, text="Create/Amend Group", width=10, command=self.display_create_group_window).grid(row=3,column=0,padx=10)
-        self.join_group_button = Button(frame, text="Join Group", width=10, command=self.display_join_group_window).grid(row=3,column=1,padx=10)
+        
+        self.join_button = Button(frame, text="Join", width=10, command=self.on_join)
+        self.join_button.grid(row=0,column=2,padx=10)
+        
+        self.sign_up_button = Button(frame, text="Sign Up", width=10, command=self.on_signup)
+        self.sign_up_button.grid(row=1,column=2,padx=10)
+
+
+        self.create_group_button = Button(frame, text="Create/Amend Group", width=20, command=self.display_create_group_window, state='disabled')
+        self.create_group_button.grid(row=3,column=0,padx=10)
+
+        self.join_group_button = Button(frame, text="Join Group", width=10, command=self.display_join_group_window, state='disabled')
+        self.join_group_button.grid(row=3,column=2,padx=10)
 
     def display_chat_box(self):
         frame = Frame()
@@ -166,7 +163,7 @@ class GUI:
 
         
         # print(users)
-
+        
         
         frame = Frame(top)
         frame.pack()
@@ -182,12 +179,12 @@ class GUI:
         self.members_widget = Entry(frame, width=40,font=("arial", 13))
         self.members_widget.grid(row=1,column=1,padx=10,pady=10)
         
-        Button(frame,width=20 ,text='Create/Amend Group', command=self.create_group_request).grid(row= 2,column = 0)
+        Button(frame,width=20 ,text='Create/Amend Group', command=(lambda : self.create_group_request(top))).grid(row= 2,column = 0)
        
       
         return
     
-    def create_group_request(self):
+    def create_group_request(self,top):
         members_list = self.members_widget.get().strip().split(',')
         
         
@@ -201,7 +198,7 @@ class GUI:
         header = f"R{len(request):<{HEADER_LENGTH}}".encode('utf-8')
         self.client_socket.send(header + request)
 
-
+        top.destroy()
 
 
 
@@ -224,15 +221,16 @@ class GUI:
   
         
                 
-        Button(frame, text='Join Group', command=(lambda : self.join_group(self.join_group_name_widget.get().strip()))).grid(row= 2,column = 0)  
+        Button(frame, text='Join Group', command=(lambda : self.join_group(self.join_group_name_widget.get().strip(),top))).grid(row= 2,column = 0)  
 
         
-    def join_group(self,grpname):
+    def join_group(self,grpname,top):
         
         request = (grpname).encode('utf-8')
         header = f"J{len(request):<{HEADER_LENGTH}}".encode('utf-8')
         self.client_socket.send(header + request)   
-
+        top.destroy()
+        self.join_group_button['text'] = 'Change Group'
 
 
     def on_signup(self):
@@ -290,6 +288,9 @@ class GUI:
             self.has_joined = True
             self.name_widget.config(state='disabled')
             self.pass_widget.config(state='disabled')
+
+            self.create_group_button.config(state = 'normal')
+            self.join_group_button.config(state = 'normal') 
             self.listen_for_incoming_messages_in_a_thread()
         
 
