@@ -297,6 +297,13 @@ def get_current_group(name,cursor):
     cursor.execute(query)
     result = cursor.fetchone()[0]
     return result
+
+def get_encoded_key(name,grpname,cursor):
+    query = f'''SELECT Coded_Key From UserGroupInfo WHERE Name =\'{name}\' AND GroupName = \'{grpname}\' '''
+    cursor.execute(query)
+    result = cursor.fetchone()[0]
+    result = result.replace("\\\\","\\")
+    return result
 #Creating a cursor object using the cursor() method
 cursor = conn.cursor()
 

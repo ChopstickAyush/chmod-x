@@ -246,6 +246,7 @@ class GUI:
                 Insert into {username} (GroupName, Key) VALUES (\'{message["groupname"]}\', \'{fernet_key}\') 
                 '''
                 cursor.execute(insertkeyquery)
+                print("hi")
 
             elif filtered_msg[0] == 'J' :
                  message = message.decode('utf-8')

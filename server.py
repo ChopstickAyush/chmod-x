@@ -277,6 +277,15 @@ while True:
                         # We are reusing here message header sent by sender, and saved username header send by user when he connected
                         cs.send(message_1)
                         notified_socket.send(message_2)
+ 
+                        
+                key = get_encoded_key(username, group_name,cursor)
+                message_to_send = json.dumps({"fernet_key" : key, "groupname" : group_name}).encode('utf-8')
+                print({"fernet_key" : key, "groupname" : group_name})
+                message_len = len(message_to_send)
+                message_ = f"Z{message_len:<{HEADER_LENGTH}}".encode('utf-8') + message_to_send
+                notified_socket.send(message_)
+
 
                 messages = pendingmsg(username, group_name, cursor)
 
@@ -288,7 +297,7 @@ while True:
                         message_ = f"M{message_len:<{HEADER_LENGTH}}".encode(
                             'utf-8') + message_to_send
                         notified_socket.send(message_)
-            
+
             elif message['header'].decode('utf-8')[0] == 'M' or message['header'].decode('utf-8')[0] == 'I':
                 # Get user by notified socket, so we will know who sent the message
                 # user = clients[notified_socket]
