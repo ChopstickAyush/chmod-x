@@ -261,9 +261,12 @@ class GUI:
                     \'{groupname}\'
                     '''
                 message = msg[1].encode()
+                print(groupname)
                 cursor.execute(privatequery)
-                key = cursor.fetchall()[0]
-                key = key[0]
+                
+                key = cursor.fetchall()
+                print(key)
+                key = key[0][0]
                 print(key)
                 key = eval("b'" + key + "'")
                 print(key)
@@ -536,6 +539,7 @@ class GUI:
 
             
             if code == 'err_1':
+                self.client_sockets = []
                 messagebox.showerror(
                 "Invalid username/password", "If The username is not registered, try using the Sign In button!")
                 return
@@ -583,7 +587,8 @@ class GUI:
             '''
             print(self.current_group)
             cursor.execute(fernetkeyquery)
-            key = cursor.fetchall()[0][0]
+            key = cursor.fetchall()
+            key = key[0][0]
             print("Send!! : ", key)
             key = eval("b'" + key + "'")
             key = Fernet(key)
@@ -607,7 +612,7 @@ class GUI:
 #the mail function 
 if __name__ == '__main__':
     # proxy = xmlrpc.client.ServerProxy("http://localhost:8080/")
-    ports = [1234]
+    ports = [1234,1235]
     root = Tk()
     gui = GUI(root, ports)
     root.protocol("WM_DELETE_WINDOW", gui.on_close_window)
