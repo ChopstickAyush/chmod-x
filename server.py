@@ -347,17 +347,7 @@ while True:
                             j.send(message_)
                             break
                 
-            # elif message['header'].decode('utf-8')[0] == 'E':
-            #     print("giy")
-            #     y=json.loads(message['data'].decode('utf-8'))
-            #     publickey=y["public_key"]
-            #     username=y["username"]
-            #     add_public_key(username,publickey,cursor)
-
-            print(
-                    f'Received message from {username}: {message["data"].decode("utf-8")}')
-
-                # Iterate over connected clients and broadcast message
+           
             
 
 
