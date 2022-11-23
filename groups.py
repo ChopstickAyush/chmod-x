@@ -63,8 +63,12 @@ def sendmsg(username,grpname,cursor,message):
     INSERT INTO  Messages(GroupName, msg, Name) VALUES (\'{grpname}\',\'{message}\', \'{username}\')'''
     cursor.execute(insertmsgquery)
     
-
-
+def get_message_counter(username, grpname, message,cursor):
+    getcounterquery = f'''
+    Select Time from Messages where Name=\'{username}\' AND GroupName=\'{grpname}\' AND msg = \'{message}\''''
+    cursor.execute(getcounterquery)
+    time = cursor.fetchone()[0]
+    return time
 def pendingmsg(username, grpname, cursor) :
     '''
     grpname : string
@@ -84,7 +88,7 @@ def pendingmsg(username, grpname, cursor) :
         time = time[0]
 
     # using this time to get list of messages after this time. 
-    # print(time)
+    print(time)
     # pdb.set_trace()
     getmessagequery = f'''
     Select Name, msg from Messages where Time > {time} AND GroupName = \'{grpname}\'
@@ -93,16 +97,16 @@ def pendingmsg(username, grpname, cursor) :
     rows = cursor.fetchall()
 
     # Update the last seen message 
-    curtimequery = f'''Select Max(Time) from Messages where GroupName = \'{grpname}\' '''
-    cursor.execute(curtimequery)
-    curtime = cursor.fetchone()
+    # curtimequery = f'''Select Max(Time) from Messages where GroupName = \'{grpname}\' '''
+    # cursor.execute(curtimequery)
+    # curtime = cursor.fetchone()
 
-    if len(curtime) > 0:
-        if  curtime[0] is not None:
-            updatetimequery = f'''
-            Update UserGroupInfo SET Time = ({curtime[0]})
-            '''
-            cursor.execute(updatetimequery)
+    # if len(curtime) > 0:
+    #     if  curtime[0] is not None:
+    #         updatetimequery = f'''
+    #         Update UserGroupInfo SET Time = ({curtime[0]}) WHERE Name =\'{username}\' AND GroupName = \'{grpname}\'
+    #         '''
+    #         cursor.execute(updatetimequery)
     return rows
 
     
@@ -304,7 +308,20 @@ def get_encoded_key(name,grpname,cursor):
     result = cursor.fetchone()[0]
     result = result.replace("\\\\","\\")
     return result
-#Creating a cursor object using the cursor() method
+
+def update_client_counter(name,grpname,counter,cursor):
+    timequery = f'''SELECT Time From UserGroupInfo WHERE Name =\'{name}\' AND GroupName = \'{grpname}\''''
+    cursor.execute(timequery)
+    time = cursor.fetchone()[0]
+    max_time = max(time,counter)
+
+    update_query = f'''  
+    UPDATE UserGroupInfo SET Time = ({max_time}) WHERE Name =\'{name}\' AND GroupName = \'{grpname}\' 
+    '''
+    cursor.execute(update_query)
+    
+
+
 cursor = conn.cursor()
 
 #Preparing query to create a database

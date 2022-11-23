@@ -292,7 +292,8 @@ while True:
                 if messages is not None:
                     # print(messages)
                     for usr, msg in messages:
-                        message_to_send = (usr+": " + msg).encode('utf-8')
+                        counter =  get_message_counter(usr,group_name,msg,cursor)
+                        message_to_send = json.dumps({'message': msg, 'user': usr, 'counter' : counter}).encode('utf-8')
                         message_len = len(message_to_send)
                         message_ = f"M{message_len:<{HEADER_LENGTH}}".encode(
                             'utf-8') + message_to_send
@@ -308,9 +309,9 @@ while True:
                 if (message['header'].decode('utf-8')[0] == 'M') :
                     sendmsg(username, group_name , cursor,
                         message["data"].decode("utf-8"))
-                    print(
-                        f'Received message from {username}: {message["data"].decode("utf-8")} in group{group_name}')
+                    print(f'Received message from {username}: {message["data"].decode("utf-8")} in group{group_name}')
 
+                counter = get_message_counter(username,group_name,message["data"].decode("utf-8"),cursor)
                 # Iterate over connected clients and broadcast message
                 for cs in clients:
         
@@ -323,8 +324,7 @@ while True:
                         message_len = len(message_to_send)
                         message_ = None
                         if (message['header'].decode('utf-8')[0] == 'M') :
-                            message_to_send = (
-                            username+": ").encode('utf-8') + message['data']
+                            message_to_send = json.dumps({'message': message_to_send.decode(), 'user': username, 'counter' : counter}).encode('utf-8')
                             message_len = len(message_to_send)
                             message_ = f"M{message_len:<{HEADER_LENGTH}}".encode(
                                 'utf-8') + message_to_send
@@ -350,16 +350,9 @@ while True:
                     x = x.replace("\\","\\\\")
                     print(y[i])
                     set_private_key(i, group_name, x,cursor)
-                # for j in clients :
-                #     if clients[j].userdetails == i : 
-                        
-                #         # send the appropriate public key 
-                #         message_to_send = json.dumps({"fernet_key" : y[i], "groupname" : group_name}).encode('utf-8')
-                #         print({"fernet_key" : y[i], "groupname" : group_name})
-                #         message_len = len(message_to_send)
-                #         message_ = f"Z{message_len:<{HEADER_LENGTH}}".encode('utf-8') + message_to_send
-                #         j.send(message_)
-                #         break
+            elif message['header'].decode('utf-8')[0] == 'V':
+                 mesg = json.loads(message["data"].decode("utf-8"))
+                 update_client_counter(mesg['user'],mesg['group_name'],mesg['counter'],cursor)
                 
            
             

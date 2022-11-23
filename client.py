@@ -254,32 +254,35 @@ class GUI:
                  self.chat_transcript_area.insert('end',message + '\n','warning')
                  self.chat_transcript_area.yview(END)
             elif filtered_msg[0] == "M":
-                msg = message.decode('utf-8').split(" ")
+                msg = json.loads(message.decode('utf-8'))
                 groupname=self.current_group
                 username = self.name_widget.get()
                 privatequery = f'''
                     Select key from {username} where GroupName = 
                     \'{groupname}\'
                     '''
-                message = msg[1].encode()
+                message = msg['message'].encode()
                 print(groupname)
                 cursor.execute(privatequery)
                 
-                key = cursor.fetchall()
-                print(key)
-                key = key[0][0]
-                print(key)
+                key = cursor.fetchall()[0][0]
+                # print(key)
                 key = eval("b'" + key + "'")
-                print(key)
+                # print(key)
                 key = Fernet(key)
                 print(message)
                 message = key.decrypt(message)
                 #self.chat_transcript_area.tag_config('warning', foreground="green")
                 # Now do the same for message (as we received username, we received whole message, there's no need to check if it has any length)
                 
-                self.chat_transcript_area.insert('end',msg[0] +" "+message.decode('utf-8') + '\n')
+                self.chat_transcript_area.insert('end',msg['user'] +": "+message.decode('utf-8') + '\n')
                 self.chat_transcript_area.yview(END)
                 
+                mesg = json.dumps({'user': username, 'group_name' : groupname , 'counter' : msg['counter']}).encode('utf-8')
+                message_len = len(mesg)
+                acknowledgement = f"V{message_len:<{HEADER_LENGTH}}".encode(
+                                'utf-8') + mesg
+                self.current_client_socket.send(acknowledgement)
 
         print('closed!')
         so.close()
