@@ -236,7 +236,7 @@ class GUI:
                 cursor.execute(pvtkeyquery)
                 keys = cursor.fetchall()[0]
                 private_key = keys[0]
-
+                
                 private_key = private_key_decode(private_key)
                 fernet_key = private_key.decrypt(eval(fernet_key), default_pad)
                 fernet_key = str(fernet_key)[2:-1]
@@ -612,7 +612,7 @@ class GUI:
 #the mail function 
 if __name__ == '__main__':
     # proxy = xmlrpc.client.ServerProxy("http://localhost:8080/")
-    ports = [1234,1235]
+    ports = [1234]
     root = Tk()
     gui = GUI(root, ports)
     root.protocol("WM_DELETE_WINDOW", gui.on_close_window)

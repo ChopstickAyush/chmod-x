@@ -3,6 +3,7 @@ import socket
 import select
 import threading
 import json
+import re
 import sys
 # from xmlrpc.server import SimpleXMLRPCServer
 
@@ -335,17 +336,21 @@ while True:
 
                 for i in y : 
                     if i == "groupname" : continue
-
-                    for j in clients :
-                        if clients[j].userdetails == i : 
-                            
-                            # send the appropriate public key 
-                            message_to_send = json.dumps({"fernet_key" : y[i], "groupname" : group_name}).encode('utf-8')
-                            print({"fernet_key" : y[i], "groupname" : group_name})
-                            message_len = len(message_to_send)
-                            message_ = f"Z{message_len:<{HEADER_LENGTH}}".encode('utf-8') + message_to_send
-                            j.send(message_)
-                            break
+                    x=y[i]
+                    x = x.replace("'","''")
+                    x = x.replace("\\","\\\\")
+                    print(y[i])
+                    set_private_key(i, group_name, x,cursor)
+                # for j in clients :
+                #     if clients[j].userdetails == i : 
+                        
+                #         # send the appropriate public key 
+                #         message_to_send = json.dumps({"fernet_key" : y[i], "groupname" : group_name}).encode('utf-8')
+                #         print({"fernet_key" : y[i], "groupname" : group_name})
+                #         message_len = len(message_to_send)
+                #         message_ = f"Z{message_len:<{HEADER_LENGTH}}".encode('utf-8') + message_to_send
+                #         j.send(message_)
+                #         break
                 
            
             

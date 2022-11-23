@@ -28,6 +28,7 @@ def create_tables(cursor) :
         Name VARCHAR ( 20 ),
         GroupName VARCHAR ( 20 ),
         Isadmin BOOLEAN, 
+        Coded_Key TEXT ,
         Time INT DEFAULT 0,
         FOREIGN KEY (Name)
         REFERENCES Users (Name),
@@ -283,7 +284,10 @@ def enter_group(name,admin,grpname):
             '''
         cursor.execute(insertnamesquery)
 
-
+def set_private_key(username , groupname, privatekey,cursor):
+    query = f'''UPDATE UserGroupInfo Set Coded_Key = \'{privatekey}\' WHERE Name =\'{username}\' AND GroupName=\'{groupname}\''''
+    cursor.execute(query)
+    
 def set_current_group(name,grpname,cursor):
     query = f'''UPDATE Users Set CurrentGroup = \'{grpname}\' WHERE Name =\'{name}\''''
     cursor.execute(query)
