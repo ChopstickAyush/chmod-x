@@ -19,7 +19,8 @@ def create_tables(cursor) :
         CREATE TABLE IF NOT EXISTS Users (
         Name VARCHAR ( 20 ) PRIMARY KEY,
         Password VARCHAR ( 72 ) NOT NULL,
-        CurrentGroup VARCHAR ( 20 ) DEFAULT NULL
+        CurrentGroup VARCHAR ( 20 ) DEFAULT NULL,
+        public_key VARCHAR(20000)
         );
 
         DROP TABLE IF EXISTS UserGroupInfo cascade;
@@ -185,12 +186,17 @@ def validate(name, password ,cursor) :
             return True
         return False
 
+# def add_public_key(user,publickey,cursor):
+#     insert = f'''
+#         UPDATE Users SET public_key='{publickey}' WHERE Name = '{user}'
+#         '''
+#     cursor.execute(insert)
 
-def add_user(name, password, cursor):
+def add_user(name, password, public_key,  cursor):
     
     if not check_user_name(name,cursor):
         insert = f'''
-                INSERT INTO Users (Name, Password) VALUES ('{name}', '{password}');
+                INSERT INTO Users (Name, Password, public_key) VALUES ('{name}', '{password}', '{public_key}');
                 '''
         cursor.execute(insert)
         print('User Added!')

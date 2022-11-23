@@ -9,14 +9,35 @@ import json
 import pickle
 import numpy as np
 import bcrypt
+import psycopg2
+import base64 
+from myrsa import *
 
 HEADER_LENGTH = 10
 
-
+conn2 = psycopg2.connect(
+        database="postgres", user='postgres', password='1234', host='127.0.0.1', port= '5432'
+    )
+conn2.autocommit =True
+cursor = conn2.cursor()
+def user_table(username):
+    create= f'''
+            DROP TABLE IF EXISTS {username} cascade;
+            CREATE TABLE IF NOT EXISTS {username} (
+            GroupName VARCHAR ( 20 ),
+            key VARCHAR(1000) 
+            );
+            
+            DROP TABLE IF EXISTS {username}info cascade;
+            CREATE TABLE IF NOT EXISTS {username}info(
+            public_key VARCHAR (4096),
+            private_key VARCHAR (4096)
+            );'''
+    cursor.execute(create)
 class GUI:
     """
     This is the implementation of the client side GUI, that interacts with the server.
-    :param client_socket: This holds the socket object initialized with TCP anf IPv4
+    :param current_client_socket: This holds the socket object initialized with TCP anf IPv4
     :type client: socket
     :param root: This is the main Tkinter window
     :type root: Tk
@@ -118,21 +139,9 @@ class GUI:
         """
         This runs the function receive_message_from_server in a parallel thread.
         """
-        # self.threads = []
-        # for port in self.ports:
-            
-        #     thread = threading.Thread(target=self.receive_message_from_server, args=(cs,)) # Create a thread for the send and receive in same time 
-        #     self.threads.append(thread)
-        
-        # for thread in self.threads:
-        #     thread.start()
         thread = threading.Thread(target=self.receive_message_from_server, args=(self.current_client_socket,))
         thread.start()
         
-    #function to recieve msg
-
-
-
     def receive_message_from_server(self, so):
         """
         This is used to recieve and handle all kinds of messages/responses from the server
@@ -150,16 +159,14 @@ class GUI:
                 # sys.exit()
 
             filtered_msg = header.decode('utf-8').strip()
+            print(filtered_msg)
 
             length = int(filtered_msg[1:])
 
 
             message = so.recv(length)
             # Receive and decode username
-            if filtered_msg[0] == 'R':
-                self.users = eval(message.decode('utf-8'))
-                continue
-            elif filtered_msg[0] == 'E':
+            if filtered_msg[0] == 'E':
                 if message.decode('utf-8') == "err_0":
                     messagebox.showerror("Invalid GroupName", "Either the group doesn't exist or you're not in the group!")
                 else:
@@ -168,23 +175,107 @@ class GUI:
                         self.chat_transcript_area.insert('end',f'You have left {self.current_group}!' +'\n')
                         self.chat_transcript_area.yview(END)
                     self.current_group = message.decode('utf-8')
+                    print(self.current_group)
                     self.chat_transcript_area.insert('end',f'You have joined {self.current_group}!' +'\n')
                     self.chat_transcript_area.yview(END)
             
             elif filtered_msg[0] == 'I' :
                 image = Image.open(io.BytesIO(message))
                 image.show()
-
-            else:
+            elif filtered_msg[0] == 'L' :
+                message=json.loads(message)
+                username = self.name_widget.get()
+                groupname = message["groupname"]
+                    
+                grpexistquery = f'''
+                Select count(*) from {username} where GroupName = \'{groupname}\''''
+                cursor.execute(grpexistquery)
+                rows = cursor.fetchall()
+                key = None
+                if rows[0][0] == 0 :
+                    key=generate_fernet()
+                    key = str(key)[2:-1]
+                    print("FERNET : \n", key, str(key), len(key), len(str(key)))
+                    insertkey = f'''
+                    INSERT INTO {username} VALUES (\'{groupname}\', \'{key}\');
+                    '''
+                    cursor.execute(insertkey)
+                else : 
+                    privatequery = f'''
+                    Select key from {username} where GroupName = 
+                    \'{groupname}\'
+                    '''
+                    cursor.execute(privatequery)
+                    key = cursor.fetchall()[0]
+                    key = key[0]
+                mykey=dict({})
                 
-                self.chat_transcript_area.tag_config('warning', foreground="green")
+                for i in message:
+                    if i == "groupname" : 
+                        mykey[i] = message[i]
+                        continue
+                    public_client=public_key_decode(message[i])
+                    mykey[i]= str(public_client.encrypt(eval("b'" + key + "'"), default_pad))
+                    print(type(public_client.encrypt(eval("b'" + key + "'"), default_pad)), mykey[i].encode())
+                a = json.dumps(mykey)
+                request = a.encode('utf-8')
+                header = f"Q{len(request):<{HEADER_LENGTH}}".encode('utf-8')
+                self.current_client_socket.send(header + request)
+            
+            elif filtered_msg[0] == 'Z' :
+                message = json.loads(message)
+                username = self.name_widget.get()
+                print("Received fernet key : ")
+                print(message)
+
+                fernet_key = message["fernet_key"]
+                
+                pvtkeyquery = f'''
+                Select private_key from {username}info;
+                '''
+                cursor.execute(pvtkeyquery)
+                keys = cursor.fetchall()[0]
+                private_key = keys[0]
+
+                private_key = private_key_decode(private_key)
+                fernet_key = private_key.decrypt(eval(fernet_key), default_pad)
+                fernet_key = str(fernet_key)[2:-1]
+                print(fernet_key)
+                print("BEFORE INSERTION")
+                insertkeyquery = f'''
+                Insert into {username} (GroupName, Key) VALUES (\'{message["groupname"]}\', \'{fernet_key}\') 
+                '''
+                cursor.execute(insertkeyquery)
+
+            elif filtered_msg[0] == 'J' :
+                 message = message.decode('utf-8')
+                 self.chat_transcript_area.tag_config('warning', foreground="green")
+                 self.chat_transcript_area.insert('end',message + '\n','warning')
+                 self.chat_transcript_area.yview(END)
+            elif filtered_msg[0] == "M":
+                msg = message.decode('utf-8').split(" ")
+                groupname=self.current_group
+                username = self.name_widget.get()
+                privatequery = f'''
+                    Select key from {username} where GroupName = 
+                    \'{groupname}\'
+                    '''
+                message = msg[1].encode()
+                cursor.execute(privatequery)
+                key = cursor.fetchall()[0]
+                key = key[0]
+                print(key)
+                key = eval("b'" + key + "'")
+                print(key)
+                key = Fernet(key)
+                print(message)
+                message = key.decrypt(message)
+                #self.chat_transcript_area.tag_config('warning', foreground="green")
                 # Now do the same for message (as we received username, we received whole message, there's no need to check if it has any length)
-                if ":" in message.decode('utf-8'):
-                    self.chat_transcript_area.insert('end',message.decode('utf-8') + '\n')
-                    self.chat_transcript_area.yview(END)
-                else:
-                    self.chat_transcript_area.insert('end',message.decode('utf-8') + '\n','warning')
-                    self.chat_transcript_area.yview(END)
+                
+                self.chat_transcript_area.insert('end',msg[0] +" "+message.decode('utf-8') + '\n')
+                self.chat_transcript_area.yview(END)
+                
 
         print('closed!')
         so.close()
@@ -281,8 +372,6 @@ class GUI:
         
         frame = Frame(top)
         frame.pack()
-   
-        
         
         Label(frame, text='Group Name:', font=("arial", 13,"bold")).grid(row=0,column=0,padx=5,pady=10)
         self.group_name_widget = Entry(frame, width=40,font=("arial", 13))
@@ -347,7 +436,7 @@ class GUI:
      
         Button(frame, text='Join Group', command=(lambda : self.join_group(self.join_group_name_widget.get().strip(),top))).grid(row= 2,column = 0)  
 
-        
+    
     def join_group(self,grpname,top):
         """
         This sends a request to the server when a client wants to join a group
@@ -391,8 +480,10 @@ class GUI:
 
             salt = bcrypt.gensalt()
             pwdhash = bcrypt.hashpw(password,salt).decode('utf-8')
-
-            userdetails = json.dumps({'token' : 'register','user' : username, 'pass' : pwdhash}).encode('utf-8')
+            print("before rsa")
+            public_key, private_key, insertmsgquery = enter_my_key(username,cursor)
+            print("after rsa")
+            userdetails = json.dumps({'token' : 'register','user' : username, 'pass' : pwdhash, 'public_key': public_key }).encode('utf-8')
             header = f"S{len(userdetails):<{HEADER_LENGTH}}".encode('utf-8')
             self.current_client_socket.send(header + userdetails)
             code = self.current_client_socket.recv(10).decode('utf-8')
@@ -405,6 +496,10 @@ class GUI:
                 "Success!", "You have successfully registered!")
             self.has_registered = True
             
+            user_table(username)
+            cursor.execute(insertmsgquery, (public_key, private_key))
+                
+        
     
     def on_join(self):
         """
@@ -482,7 +577,18 @@ class GUI:
             message = data.encode('utf-8')
             self.chat_transcript_area.insert('end', username+message.decode('utf-8') + '\n')
             self.chat_transcript_area.yview(END)
-            message_header = f"M{len(message.decode('utf-8')):<{HEADER_LENGTH}}".encode('utf-8')
+
+            fernetkeyquery = f'''
+            Select key from {username[:-2]} where GroupName = \'{self.current_group}\'
+            '''
+            print(self.current_group)
+            cursor.execute(fernetkeyquery)
+            key = cursor.fetchall()[0][0]
+            print("Send!! : ", key)
+            key = eval("b'" + key + "'")
+            key = Fernet(key)
+            message = key.encrypt(message)
+            message_header = f"M{len(message):<{HEADER_LENGTH}}".encode('utf-8')
             self.current_client_socket.send(message_header + message)
 
         self.enter_text_widget.delete(1.0, 'end')
@@ -501,7 +607,7 @@ class GUI:
 #the mail function 
 if __name__ == '__main__':
     # proxy = xmlrpc.client.ServerProxy("http://localhost:8080/")
-    ports = [1234]
+    ports = [1234,1235]
     root = Tk()
     gui = GUI(root, ports)
     root.protocol("WM_DELETE_WINDOW", gui.on_close_window)

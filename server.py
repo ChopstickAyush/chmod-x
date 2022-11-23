@@ -18,10 +18,12 @@ PORT = int(sys.argv[1])
 class Client:
     socket = None
     userdetails = None
+    #public_key = None
 
     def __init__(self, socket, userdetails):
         self.socket = socket
         self.userdetails = userdetails
+        #self.public_key = public_key
 
 
 # Create a socket
@@ -153,10 +155,11 @@ while True:
                 if check_user_name(userdetails['user'], cursor):
                     client_socket.send("err_2".encode('utf-8'))
                 else:
-                    add_user(userdetails['user'], userdetails['pass'], cursor)
+                    add_user(userdetails['user'], userdetails['pass'],userdetails['public_key'] ,cursor)
                     # enter_group(userdetails['user'], 'Test')
                     client_socket.send("suc_0".encode('utf-8'))
                 continue
+            
             # Add accepted socket to select.select() list
             sockets_list.append(client_socket)
 
@@ -172,6 +175,7 @@ while True:
 
             # Receive message
             message = receive_message(notified_socket)
+            
             print(message)
             # If False, client disconnected, cleanup
             if message is False:
@@ -209,11 +213,36 @@ while True:
 
                 users_lst_add.append(username)
                 users_lst_add = users_lst_add[::-1]
+                mydict={}
+                # enter_group(username,username ,group_name)
+                for i in users_lst_add:
+                    enter_group(i,username ,group_name)
+                    key=f'''Select public_key from Users where Name=\'{i}\''''
+                    cursor.execute(key)
+                    rows = cursor.fetchall()[0]
+                    row = rows[0]
+                    mydict[i] = row
+                print(mydict)
+
+                # Assuming no person called groupname
+                mydict["groupname"] = group_name
+
+                send_public_keys = json.dumps(mydict)    
+                for i in clients : 
+                    if clients[i].userdetails== username:
+                        print(username)
+                        message_to_send= send_public_keys.encode('utf-8')
+                        message_len = len(message_to_send)   
+                        message_=f"L{message_len:<{HEADER_LENGTH}}".encode('utf-8')+message_to_send
+                        print(message_)
+                        i.send(message_)
+                        break
 
                 for i in users_lst_add:
                     enter_group(i,username ,group_name)
                 for i in users_lst_remove:
                     remove_users_from_group(i,group_name,username,cursor)
+
             elif message['header'].decode('utf-8')[0] == 'J':
                 group_name = message['data'].decode('utf-8')
                 print(username, group_name)
@@ -235,14 +264,14 @@ while True:
                         join_message_to_others = (
                             username + " has joined!").encode('utf-8')
                         join_message_len_1 = len(join_message_to_others)
-                        message_1 = f"M{join_message_len_1:<{HEADER_LENGTH}}".encode(
+                        message_1 = f"J{join_message_len_1:<{HEADER_LENGTH}}".encode(
                             'utf-8') + join_message_to_others
 
-                        print(join_message_to_others.decode('utf-8'))
+                        # print(join_message_to_others.decode('utf-8'))
                         join_message_to_new_user = (
                             other_user + " has joined!").encode('utf-8')
                         join_message_len_2 = len(join_message_to_new_user)
-                        message_2 = f"M{join_message_len_2:<{HEADER_LENGTH}}".encode(
+                        message_2 = f"J{join_message_len_2:<{HEADER_LENGTH}}".encode(
                             'utf-8') + join_message_to_new_user
                         # We are reusing here message header sent by sender, and saved username header send by user when he connected
                         cs.send(message_1)
@@ -255,7 +284,7 @@ while True:
                     for usr, msg in messages:
                         message_to_send = (usr+": " + msg).encode('utf-8')
                         message_len = len(message_to_send)
-                        message_ = f"A{message_len:<{HEADER_LENGTH}}".encode(
+                        message_ = f"M{message_len:<{HEADER_LENGTH}}".encode(
                             'utf-8') + message_to_send
                         notified_socket.send(message_)
             
@@ -274,7 +303,7 @@ while True:
 
                 # Iterate over connected clients and broadcast message
                 for cs in clients:
-
+        
                     # But don't sent it to sender
                     if cs != notified_socket and get_current_group(clients[cs].userdetails,cursor) == group_name:
 
@@ -294,6 +323,42 @@ while True:
                                 'utf-8') + message_to_send
                         # We are reusing here message header sent by sender, and saved username header send by user when he connected
                         cs.send(message_)
+                
+            elif message['header'].decode('utf-8')[0] == 'Q':
+                    # Get user by notified socket, so we will know who sent the message
+                # user = clients[notified_socket]
+                print("Reached below Q")
+                # print(userdetails[1])
+                #group_name = clients[notified_socket].current_group
+                y=(json.loads(message["data"].decode("utf-8")))
+                group_name=y["groupname"]
+
+                for i in y : 
+                    if i == "groupname" : continue
+
+                    for j in clients :
+                        if clients[j].userdetails == i : 
+                            
+                            # send the appropriate public key 
+                            message_to_send = json.dumps({"fernet_key" : y[i], "groupname" : group_name}).encode('utf-8')
+                            print({"fernet_key" : y[i], "groupname" : group_name})
+                            message_len = len(message_to_send)
+                            message_ = f"Z{message_len:<{HEADER_LENGTH}}".encode('utf-8') + message_to_send
+                            j.send(message_)
+                            break
+                
+            # elif message['header'].decode('utf-8')[0] == 'E':
+            #     print("giy")
+            #     y=json.loads(message['data'].decode('utf-8'))
+            #     publickey=y["public_key"]
+            #     username=y["username"]
+            #     add_public_key(username,publickey,cursor)
+
+            print(
+                    f'Received message from {username}: {message["data"].decode("utf-8")}')
+
+                # Iterate over connected clients and broadcast message
+            
 
 
     # It's not really necessary to have this, but will handle some socket exceptions just in case
