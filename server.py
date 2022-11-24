@@ -54,6 +54,17 @@ clients = {}
 print(f'Listening for connections on {IP}:{PORT}...')
 
 
+def send_message_in_packets(client_socket,message,header ,length):
+
+    client_socket.send(header)
+    while length > LARGEST_PACKET_LENGTH:
+          length -= LARGEST_PACKET_LENGTH
+          client_socket.send(message[:LARGEST_PACKET_LENGTH])
+          message = message[LARGEST_PACKET_LENGTH:]
+    if length > 0:
+        client_socket.send(message)
+    print('SEND SUCESSFULL')
+    return
 
 # Handles message receiving
 def receive_message(client_socket):
@@ -311,19 +322,23 @@ while True:
 
                         # Send user and message (both with their headers)
                         # pdb.set_trace()
-                        message_to_send = message['data']
-                        message_len = len(message_to_send)
-                        message_ = None
+                        message_to_send = None
+                        
+                        header = None
+                        message_to_send = None
                         if (message['header'].decode('utf-8')[0] == 'M') :
-                            message_to_send = json.dumps({'message': message_to_send.decode(), 'user': username, 'counter' : counter}).encode('utf-8')
+                            message_to_send = json.dumps({'message':  message['data'].decode(), 'user': username, 'counter' : counter}).encode('utf-8')
                             message_len = len(message_to_send)
-                            message_ = f"M{message_len:<{HEADER_LENGTH}}".encode(
-                                'utf-8') + message_to_send
+                            header = f"M{message_len:<{HEADER_LENGTH}}".encode(
+                                'utf-8') 
                         elif (message['header'].decode('utf-8')[0] == 'I') :
-                            message_ = f"I{message_len:<{HEADER_LENGTH}}".encode(
-                                'utf-8') + message_to_send
+                            message_to_send = message['data']
+                            message_len = len(message_to_send)
+                            header = f"I{message_len:<{HEADER_LENGTH}}".encode(
+                                'utf-8')
                         # We are reusing here message header sent by sender, and saved username header send by user when he connected
-                        cs.send(message_)
+                        # cs.send(message_)
+                        send_message_in_packets(cs,message_to_send,header,message_len)
                 
             elif message['header'].decode('utf-8')[0] == 'Q':
                     # Get user by notified socket, so we will know who sent the message
