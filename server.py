@@ -189,6 +189,7 @@ while True:
 
                 users_list_add = details['members_to_add']
                 users_list_remove = details['members_to_remove']
+                print(users_list_add, users_list_remove)
                 users_lst_add = []
                 users_lst_remove = []
                 for i in users_list_add:
@@ -295,13 +296,13 @@ while True:
 
                 # print(userdetails['user'])
                 group_name = get_current_group(clients[notified_socket].userdetails,cursor)
-            
+                counter = None
                 if (message['header'].decode('utf-8')[0] == 'M') :
                     sendmsg(username, group_name , cursor,
                         message["data"].decode("utf-8"))
                     print(f'Received message from {username}: {message["data"].decode("utf-8")} in group{group_name}')
 
-                counter = get_message_counter(username,group_name,message["data"].decode("utf-8"),cursor)
+                    counter = get_message_counter(username,group_name,message["data"].decode("utf-8"),cursor)
                 # Iterate over connected clients and broadcast message
                 for cs in clients:
         

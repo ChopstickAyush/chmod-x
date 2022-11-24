@@ -619,7 +619,7 @@ class GUI:
 #the mail function 
 if __name__ == '__main__':
     # proxy = xmlrpc.client.ServerProxy("http://localhost:8080/")
-    ports = [1234]
+    ports = [1234, 1235]
     root = Tk()
     gui = GUI(root, ports)
     root.protocol("WM_DELETE_WINDOW", gui.on_close_window)
