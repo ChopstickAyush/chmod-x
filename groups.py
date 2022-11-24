@@ -39,7 +39,7 @@ def create_tables(cursor) :
         DROP TABLE IF EXISTS Messages cascade;
         CREATE TABLE IF NOT EXISTS Messages (
         GroupName VARCHAR( 20 ), 
-        msg VARCHAR ( 100 ), 
+        msg VARCHAR ( 10000 ), 
         Name VARCHAR ( 20 ),
         Time SERIAL
         );
@@ -249,6 +249,9 @@ def remove_users_from_group(name,grpname,admin,cursor):
 #temporary function
 #it doesnt check if the user is already present or not
 def enter_group(name,admin,grpname):
+
+    print("Group Enter query :", name, admin, grpname)
+
     grpquery = f'''
     Select count(*) from UserGroupInfo where GroupName = \'{grpname}\'
     '''
@@ -267,26 +270,29 @@ def enter_group(name,admin,grpname):
         cursor.execute(insertnamesquery)
     else:
         getadminquery = f'''
-            Select Name FROM UserGroupInfo WHERE Isadmin = TRUE
+            Select Name FROM UserGroupInfo WHERE Isadmin = TRUE AND GroupName = \'{grpname}\'
             '''
         cursor.execute(getadminquery)
 
         Admin = cursor.fetchone()[0]
         # to do proper error messages
         if Admin != admin:
+            print("Admin check failed")
             return
         checkquery = f'''
             Select * FROM UserGroupInfo WHERE Name =\'{name}\' AND GroupName =\'{grpname}\'
             '''
         cursor.execute(checkquery)
         results = cursor.fetchall()
-        # print(results)
+        print(results)
         if len(results) !=0 :
+            print("Already present")
             return
         insertnamesquery = f'''
             INSERT INTO UserGroupInfo (Name, GroupName, IsAdmin) VALUES (\'{name}\', \'{grpname}\', FALSE)
             '''
         cursor.execute(insertnamesquery)
+        print("Insertion successful")
 
 def set_private_key(username , groupname, privatekey,cursor):
     query = f'''UPDATE UserGroupInfo Set Coded_Key = \'{privatekey}\' WHERE Name =\'{username}\' AND GroupName=\'{groupname}\''''

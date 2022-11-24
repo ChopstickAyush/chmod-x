@@ -3,12 +3,12 @@
 This code is developed and maintained by Ayush Agarwal, Sankalan Baidya and Soham Joshi as a part of the CS251-course project as a part of the autumn semester of the academic year 2022-23. 
 
 In this project, we have used the following softwares : 
-Markup : * Python 3.8
+         * Python 3.8
          * PostGreSQL
 
 For running the code, the following modules have to be installed in python : 
 
- Markup : - rsa
+          - rsa
           - random
           - psycopg2
           - io
@@ -24,7 +24,7 @@ In addition, we have used the versions Python 3.8 and PostGreSQL 15.1
 
 In order to run the code, the following steps have to be performed : 
 
-Markup : 1. python3 server.py 1234
+         1. python3 server.py 1234
          2. python3 server.py 1235
          3. Run multiple servers in a similar fashion
          4. python3 client.py
