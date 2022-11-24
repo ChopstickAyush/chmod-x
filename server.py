@@ -11,6 +11,7 @@ from groups import *
 
 
 HEADER_LENGTH = 10
+LARGEST_PACKET_LENGTH = 1024
 
 IP = "127.0.0.1"
 PORT = int(sys.argv[1])
@@ -53,30 +54,6 @@ clients = {}
 print(f'Listening for connections on {IP}:{PORT}...')
 
 
-def handle_requests(client_socket):
-    try:
-
-        # Receive our "header" containing message length, it's size is defined and constant
-        message_header = client_socket.recv(HEADER_LENGTH)
-
-        # If we received no data, client gracefully closed a connection, for example using socket.close() or socket.shutdown(socket.SHUT_RDWR)
-        if not len(message_header):
-            return False
-
-        # Convert header to int value
-        message_length = int(message_header.decode('utf-8').strip())
-
-        # Return an object of message header and message data
-        return {'header': message_header, 'data': client_socket.recv(message_length)}
-
-    except:
-
-        # If we are here, client closed connection violently, for example by pressing ctrl+c on his script
-        # or just lost his connection
-        # socket.close() also invokes socket.shutdown(socket.SHUT_RDWR) what sends information about closing the socket (shutdown read/write)
-        # and that's also a cause when we receive an empty message
-        return False
-
 
 # Handles message receiving
 def receive_message(client_socket):
@@ -94,9 +71,22 @@ def receive_message(client_socket):
         print(filtered_msg)
         # Convert header to int value
         message_length = int(filtered_msg[1:])
+        message = "".encode('utf-8')
+        print('here1')
+        while message_length > LARGEST_PACKET_LENGTH:
+            print('here2')
+            message += client_socket.recv(LARGEST_PACKET_LENGTH)
+            message_length -= LARGEST_PACKET_LENGTH
 
+        if message_length > 0:
+            print('here3',message_length)
+            msg = client_socket.recv(message_length)
+            print(msg)
+            message += msg
+
+        print(message)
         # Return an object of message header and message data
-        return {'header': message_header, 'data': client_socket.recv(message_length)}
+        return {'header': message_header, 'data': message}
 
     except:
 

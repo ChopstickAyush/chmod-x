@@ -14,6 +14,7 @@ import base64
 from myrsa import *
 
 HEADER_LENGTH = 10
+LARGEST_PACKET_LENGTH = 1024
 
 conn2 = psycopg2.connect(
         database="postgres", user='postgres', password='1234', host='127.0.0.1', port= '5432'
@@ -103,12 +104,6 @@ class GUI:
         self.current_port = None
         self.initialize_gui()
         
-        
-    # def initialize_socket(self):
-    #     """
-    #     This is used to initialize the client side socket
-    #     """
-    #     self.current_client_socket = self.client_sockets[self.current_index] 
 
 
     def initialize_socket(self,remote_port):
@@ -162,9 +157,16 @@ class GUI:
             print(filtered_msg)
 
             length = int(filtered_msg[1:])
+            message = "".encode('utf-8')
+            while length > LARGEST_PACKET_LENGTH:
+                  message += so.recv(LARGEST_PACKET_LENGTH)
+                  length -= LARGEST_PACKET_LENGTH
+
+            if length > 0:
+                message += so.recv(length)
 
 
-            message = so.recv(length)
+            
             # Receive and decode username
             if filtered_msg[0] == 'E':
                 if message.decode('utf-8') == "err_0":
@@ -493,6 +495,7 @@ class GUI:
             userdetails = json.dumps({'token' : 'register','user' : username, 'pass' : pwdhash, 'public_key': public_key }).encode('utf-8')
             header = f"S{len(userdetails):<{HEADER_LENGTH}}".encode('utf-8')
             self.current_client_socket.send(header + userdetails)
+            print(len(userdetails))
             code = self.current_client_socket.recv(10).decode('utf-8')
 
             if code == 'err_2':
