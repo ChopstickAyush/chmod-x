@@ -1,5 +1,8 @@
+#!/usr/bin/python3
+
 from functools import cmp_to_key
 import numpy as np
+import os
 
 def less(x, y) : 
         if len(x.split(' ')) >= 2 and len(y.split(' ')) >= 2 :
@@ -25,9 +28,11 @@ def merge(files):
         my_file.close()
     x = sort(merged)
     return x
-    
-    
-sorted_messages = merge(["log/a_log.txt","log/b_log.txt","log/c_log.txt","log/d_log.txt"])
+lst = os.listdir("log")
+for i in range(len(lst)) :
+    lst[i] = "log/" + lst[i]
+print(lst)
+sorted_messages = merge(lst)
 
 def latency(messages, start_id, end_id) :
     latency = 0 
@@ -37,11 +42,10 @@ def latency(messages, start_id, end_id) :
             for j in messages : 
                 if j.split(' ')[-1] == 'r' and i.split(' ')[:3] == j.split(' ')[:3] :
                     latency += np.abs(int(j.split(' ')[-2]) - int(i.split(' ')[-2]))
-                    print(np.abs(int(j.split(' ')[-2]) - int(i.split(' ')[-2])))
                     num += 1
     return latency/num
 
-print(latency(sorted_messages, 500, 1000))
+print(latency(sorted_messages, 0, 1000))
 
 def throughput(messages, time_window) :
 

@@ -1,13 +1,23 @@
+#!/usr/bin/python3
+
 from pwn import *
 import time
 import threading
 import os
-from os.path import exists
+import sys
 
-NUM_CLIENTS = 4
-NUM_SERVERS = 3
+# python3 testing.py input.txt start_port num_clients num_servers
 
-if not exists("log"): os.makedirs("log")
+NUM_CLIENTS = int(sys.argv[3])
+NUM_SERVERS = int(sys.argv[4])
+
+os.makedirs("log")
+
+def osstuff() : 
+    
+    time.sleep(75)
+    pid = os.getpid()
+    os.kill(pid, signal.SIGKILL)
 
 class Server : 
     servers = []
@@ -15,7 +25,7 @@ class Server :
         self.ps = None
         self.port = port
         self.ps = process(argv=[f'./server.py', f'{port}' , '--cmd'])
-        self.log_file = open("log/server" + f'{port}' +"_log.txt", "wb")
+        #self.log_file = open("log/server" + f'{port}' +"_log.txt", "wb")
         Server.servers.append(port)
 
     def create_process(self)->None:
@@ -26,8 +36,9 @@ class Server :
 
         while True : 
             try:
-                self.log_file.write(self.ps.recvline())
-                self.log_file.flush()
+                #self.log_file.write(self.ps.recvline())
+                #self.log_file.flush()
+                pass
             except:
                 pass
 
@@ -39,7 +50,7 @@ class Client:
     def __init__(self, username, infile):
         self.ps = None
         self.username = username
-        self.ps = process(argv=['./client.py', '--cmd'])
+        self.ps = process(argv=['./client.py', sys.argv[2], sys.argv[4] , '--cmd'])
         self.ps.sendline(b'1')
         self.ps.sendline(self.username.encode())
         self.ps.sendline(b'1')
@@ -72,6 +83,7 @@ class Client:
             self.ps.close()
 
 try : 
+    
     servers = [Server(int(sys.argv[2])+i) for i in range(NUM_SERVERS)]
     clients = [Client(chr(97+i), sys.argv[1]) for i in range(NUM_CLIENTS)]
     print(clients)
@@ -79,6 +91,10 @@ try :
     client_threads = [threading.Thread(target=Client.create_process, args=(client,)) for client in clients]
     server_closing_threads = [threading.Thread(target=Server.close, args=(server,)) for server in servers]
     client_closing_threads = [threading.Thread(target=Client.close, args=(client,)) for client in clients]
+    
+    os_thread = threading.Thread(target=osstuff)
+    os_thread.start()
+    
     for thread in server_threads : 
         thread.start()
 
@@ -105,6 +121,7 @@ try :
 
     for thread in closing_threads:
         thread.join()
-
+    
+    
 except (BrokenPipeError, IOError):
     print ('BrokenPipeError caught', file = sys.stderr)
