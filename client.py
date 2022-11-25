@@ -164,8 +164,6 @@ class GUI:
 
             if length > 0:
                 message += so.recv(length)
-
-
             
             # Receive and decode username
             if filtered_msg[0] == 'E':
@@ -285,7 +283,13 @@ class GUI:
                 acknowledgement = f"V{message_len:<{HEADER_LENGTH}}".encode(
                                 'utf-8') + mesg
                 self.current_client_socket.send(acknowledgement)
-
+            elif filtered_msg[0] == "C":
+                print("exit")
+                for i in self.client_sockets:
+                    self.current_client_socket = i
+                    self.current_client_socket.close()
+                self.root.destroy()
+                exit(0)
         print('closed!')
         so.close()
 
@@ -612,9 +616,12 @@ class GUI:
         This handles exiting the GUI
         """
         if messagebox.askokcancel("Quit", "Do you want to quit?"):
-            self.root.destroy()
-            self.current_client_socket.close()
-            exit(0)
+            username = json.dumps({'user' : self.name_widget.get()}).encode('utf-8')
+            header = f"C{len(username):<{HEADER_LENGTH}}".encode('utf-8')
+            self.current_client_socket.send(header + username)
+            
+ 
+            
 
 #the mail function 
 if __name__ == '__main__':

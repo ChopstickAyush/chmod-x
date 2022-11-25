@@ -359,8 +359,15 @@ while True:
             elif message['header'].decode('utf-8')[0] == 'V':
                  mesg = json.loads(message["data"].decode("utf-8"))
                  update_client_counter(mesg['user'],mesg['group_name'],mesg['counter'],cursor)
-                
-           
+            elif message['header'].decode('utf-8')[0] == 'C':
+                 print("exit")
+                 
+                 message_to_send = "Yes".encode('utf-8')
+                 message_len = len(message_to_send)
+                 message_ = f"C{message_len:<{HEADER_LENGTH}}".encode(
+                                'utf-8') + message_to_send    
+                 set_current_group(username,None,cursor,True)
+                 notified_socket.send(message_)
             
 
 

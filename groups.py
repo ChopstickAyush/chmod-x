@@ -96,17 +96,6 @@ def pendingmsg(username, grpname, cursor) :
     cursor.execute(getmessagequery)
     rows = cursor.fetchall()
 
-    # Update the last seen message 
-    # curtimequery = f'''Select Max(Time) from Messages where GroupName = \'{grpname}\' '''
-    # cursor.execute(curtimequery)
-    # curtime = cursor.fetchone()
-
-    # if len(curtime) > 0:
-    #     if  curtime[0] is not None:
-    #         updatetimequery = f'''
-    #         Update UserGroupInfo SET Time = ({curtime[0]}) WHERE Name =\'{username}\' AND GroupName = \'{grpname}\'
-    #         '''
-    #         cursor.execute(updatetimequery)
     return rows
 
     
@@ -298,8 +287,10 @@ def set_private_key(username , groupname, privatekey,cursor):
     query = f'''UPDATE UserGroupInfo Set Coded_Key = \'{privatekey}\' WHERE Name =\'{username}\' AND GroupName=\'{groupname}\''''
     cursor.execute(query)
     
-def set_current_group(name,grpname,cursor):
+def set_current_group(name,grpname,cursor,remove= False):
     query = f'''UPDATE Users Set CurrentGroup = \'{grpname}\' WHERE Name =\'{name}\''''
+    if remove:
+        query = f'''UPDATE Users Set CurrentGroup = NULL WHERE Name =\'{name}\''''
     cursor.execute(query)
 
 def get_current_group(name,cursor):
