@@ -96,6 +96,15 @@ def pendingmsg(username, grpname, cursor) :
     cursor.execute(getmessagequery)
     rows = cursor.fetchall()
 
+
+    min_time_query = f'''Select Min(Time) From UserGroupInfo WHERE GroupName = \'{grpname}\' '''
+    cursor.execute(min_time_query)
+    min_time = cursor.fetchone()[0]
+
+    print(min_time)
+    delete_msg_query = f'''DELETE From Messages WHERE GroupName = \'{grpname}\' AND Time <= {min_time} '''
+    cursor.execute(delete_msg_query)
+
     return rows
 
     
@@ -227,6 +236,8 @@ def remove_users_from_group(name,grpname,admin,cursor):
             cursor.execute(query)
             query = f'''DELETE FROM Groups WHERE GroupName =\'{grpname}\' '''
             cursor.execute(query)
+            query = f'''DELETE FROM Messages WHERE  GroupName =\'{grpname}\' '''
+            cursor.execute(query)
             return
         else:
             query = f'''DELETE FROM UserGroupInfo WHERE Name =\'{name}\' AND GroupName =\'{grpname}\' '''
@@ -307,7 +318,7 @@ def get_encoded_key(name,grpname,cursor):
     return result
 
 def update_client_counter(name,grpname,counter,cursor):
-    timequery = f'''SELECT Time From UserGroupInfo WHERE Name =\'{name}\' AND GroupName = \'{grpname}\''''
+    timequery = f'''SELECT Time From Messages WHERE GroupName = \'{grpname}\''''
     cursor.execute(timequery)
     time = cursor.fetchone()[0]
     max_time = max(time,counter)

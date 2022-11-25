@@ -143,6 +143,7 @@ class GUI:
         :param so: This is the client socket object
         :type so: socket
         """
+
         while True:
 
             header = so.recv(HEADER_LENGTH+1)
@@ -250,8 +251,8 @@ class GUI:
 
             elif filtered_msg[0] == 'J' :
                  message = message.decode('utf-8')
-                 self.chat_transcript_area.tag_config('warning', foreground="green")
-                 self.chat_transcript_area.insert('end',message + '\n','warning')
+                 self.chat_transcript_area.tag_config('success', foreground="green")
+                 self.chat_transcript_area.insert('end',message + '\n','success')
                  self.chat_transcript_area.yview(END)
             elif filtered_msg[0] == "M":
                 msg = json.loads(message.decode('utf-8'))
@@ -284,14 +285,23 @@ class GUI:
                                 'utf-8') + mesg
                 self.current_client_socket.send(acknowledgement)
             elif filtered_msg[0] == "C":
-                print("exit")
+                print("here")
                 for i in self.client_sockets:
-                    self.current_client_socket = i
-                    self.current_client_socket.close()
-                self.root.destroy()
-                exit(0)
-        print('closed!')
+                    i.close()
+                break
+                
+            elif filtered_msg[0] == "R":
+                self.enter_text_widget.config(state='disabled')
+                self.current_group = None
+                message = message.decode('utf-8')
+                print(message)
+                self.chat_transcript_area.tag_config('warning', foreground="red")
+                self.chat_transcript_area.insert('end',message + '\n','warning')
+                self.chat_transcript_area.yview(END)
+
+        print("closed")
         so.close()
+        self.current_client_socket = None
 
 
     #Requests
@@ -616,9 +626,17 @@ class GUI:
         This handles exiting the GUI
         """
         if messagebox.askokcancel("Quit", "Do you want to quit?"):
+            if self.current_client_socket is None:
+                self.root.destroy()
+                exit(0)
             username = json.dumps({'user' : self.name_widget.get()}).encode('utf-8')
             header = f"C{len(username):<{HEADER_LENGTH}}".encode('utf-8')
             self.current_client_socket.send(header + username)
+            while self.current_client_socket is not None:
+                pass
+            self.root.destroy()
+            exit(0)
+            
             
  
             

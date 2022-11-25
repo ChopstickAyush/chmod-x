@@ -245,6 +245,19 @@ while True:
                     enter_group(i,username ,group_name)
                 for i in users_lst_remove:
                     remove_users_from_group(i,group_name,username,cursor)
+                    set_current_group(i,None,cursor,True)
+                    remove_msg= f"You have been removed from {group_name}!".encode('utf-8')
+                    message_len = len(message_to_send)   
+                    message_=f"R{message_len:<{HEADER_LENGTH}}".encode('utf-8')+remove_msg
+                    if i == username:
+                       for cs in clients:
+                            if get_current_group(clients[cs].userdetails,cursor) == group_name:
+                                set_current_group(clients[cs].userdetails,None,cursor,True)
+                                cs.send(message_) 
+                                users_list_remove = []    
+                    for cs in clients:
+                        if clients[cs].userdetails == i:
+                            cs.send(message_)
 
             elif message['header'].decode('utf-8')[0] == 'J':
                 group_name = message['data'].decode('utf-8')
