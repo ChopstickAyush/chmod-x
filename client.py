@@ -12,6 +12,7 @@ import bcrypt
 import psycopg2
 import base64 
 from myrsa import *
+# from load_balancer import load_balancer_round_robin
 from load_balancer import cpuutil_load_balancer
 
 HEADER_LENGTH = 10
@@ -152,11 +153,11 @@ class GUI:
             if not len(header):
                 self.chat_transcript_area.insert('end','Connection closed by the server' + '\n')
                 break
-                # print('Connection closed by the server')
+     
                 # sys.exit()
 
             filtered_msg = header.decode('utf-8').strip()
-            print(filtered_msg)
+   
 
             length = int(filtered_msg[1:])
             message = "".encode('utf-8')
@@ -177,11 +178,34 @@ class GUI:
                         self.chat_transcript_area.insert('end',f'You have left {self.current_group}!' +'\n')
                         self.chat_transcript_area.yview(END)
                     self.current_group = message.decode('utf-8')
-                    print(self.current_group)
                     self.chat_transcript_area.insert('end',f'You have joined {self.current_group}!' +'\n')
                     self.chat_transcript_area.yview(END)
             
             elif filtered_msg[0] == 'I' :
+                msg = json.loads(message.decode('utf-8'))
+                groupname=self.current_group
+                username = self.name_widget.get()
+                privatequery = f'''
+                    Select key from {username} where GroupName = 
+                    \'{groupname}\'
+                    '''
+                message = msg['message'].encode()
+                cursor.execute(privatequery)
+                
+                key = cursor.fetchall()[0][0]
+                key = eval("b'" + key + "'")
+                key = Fernet(key)
+             
+                message = key.decrypt(message)
+                #self.chat_transcript_area.tag_config('warning', foreground="green")
+                # Now do the same for message (as we received username, we received whole message, there's no need to check if it has any length)
+                
+                mesg = json.dumps({'user': username, 'group_name' : groupname , 'counter' : msg['counter']}).encode('utf-8')
+                message_len = len(mesg)
+                acknowledgement = f"V{message_len:<{HEADER_LENGTH}}".encode(
+                                'utf-8') + mesg
+                self.current_client_socket.send(acknowledgement)
+
                 image = Image.open(io.BytesIO(message))
                 image.show()
             elif filtered_msg[0] == 'L' :
@@ -197,7 +221,7 @@ class GUI:
                 if rows[0][0] == 0 :
                     key=generate_fernet()
                     key = str(key)[2:-1]
-                    print("FERNET : \n", key, str(key), len(key), len(str(key)))
+                 
                     insertkey = f'''
                     INSERT INTO {username} VALUES (\'{groupname}\', \'{key}\');
                     '''
@@ -218,7 +242,7 @@ class GUI:
                         continue
                     public_client=public_key_decode(message[i])
                     mykey[i]= str(public_client.encrypt(eval("b'" + key + "'"), default_pad))
-                    print(type(public_client.encrypt(eval("b'" + key + "'"), default_pad)), mykey[i].encode())
+                
                 a = json.dumps(mykey)
                 request = a.encode('utf-8')
                 header = f"Q{len(request):<{HEADER_LENGTH}}".encode('utf-8')
@@ -227,8 +251,7 @@ class GUI:
             elif filtered_msg[0] == 'Z' :
                 message = json.loads(message)
                 username = self.name_widget.get()
-                print("Received fernet key : ")
-                print(message)
+           
 
                 fernet_key = message["fernet_key"]
                 
@@ -242,13 +265,12 @@ class GUI:
                 private_key = private_key_decode(private_key)
                 fernet_key = private_key.decrypt(eval(fernet_key), default_pad)
                 fernet_key = str(fernet_key)[2:-1]
-                print(fernet_key)
-                print("BEFORE INSERTION")
+              
                 insertkeyquery = f'''
                 Insert into {username} (GroupName, Key) VALUES (\'{message["groupname"]}\', \'{fernet_key}\') 
                 '''
                 cursor.execute(insertkeyquery)
-                print("hi")
+            
 
             elif filtered_msg[0] == 'J' :
                  message = message.decode('utf-8')
@@ -264,7 +286,7 @@ class GUI:
                     \'{groupname}\'
                     '''
                 message = msg['message'].encode()
-                print(groupname)
+     
                 cursor.execute(privatequery)
                 
                 key = cursor.fetchall()[0][0]
@@ -272,7 +294,7 @@ class GUI:
                 key = eval("b'" + key + "'")
                 # print(key)
                 key = Fernet(key)
-                print(message)
+              
                 message = key.decrypt(message)
                 #self.chat_transcript_area.tag_config('warning', foreground="green")
                 # Now do the same for message (as we received username, we received whole message, there's no need to check if it has any length)
@@ -286,7 +308,7 @@ class GUI:
                                 'utf-8') + mesg
                 self.current_client_socket.send(acknowledgement)
             elif filtered_msg[0] == "C":
-                print("here")
+                
                 for i in self.client_sockets:
                     i.close()
                 break
@@ -295,7 +317,7 @@ class GUI:
                 self.enter_text_widget.config(state='disabled')
                 self.current_group = None
                 message = message.decode('utf-8')
-                print(message)
+              
                 self.chat_transcript_area.tag_config('warning', foreground="red")
                 self.chat_transcript_area.insert('end',message + '\n','warning')
                 self.chat_transcript_area.yview(END)
@@ -371,14 +393,33 @@ class GUI:
             return
         f = open(filename, 'rb')
         send = b""
-        data1 = f.read()
-        while data1 : 
-            send += data1
-            data1 = f.read(1024)
-            
+        data = f.read()
+        while data : 
+            send += data
+            data = f.read(1024)
+
+        username = self.name_widget.get()
+        fernetkeyquery = f'''
+        Select key from {username} where GroupName = \'{self.current_group}\'
+        '''
+        cursor.execute(fernetkeyquery)
+        key = cursor.fetchall()
+        key = key[0][0]
+        key = eval("b'" + key + "'")
+        key = Fernet(key)
+        send = key.encrypt(send)
         img_header = f"I{len(send):<{HEADER_LENGTH}}".encode('utf-8')
         self.current_client_socket.send(img_header + send)
-        self.round_robin_load_switcher()
+        self.load_switcher()
+
+    
+        
+        
+        # message_header = f"M{len(message):<{HEADER_LENGTH}}".encode('utf-8')
+        # self.current_client_socket.send(message_header + message)
+
+        
+      
 
     def display_create_group_window(self):
         """
@@ -391,7 +432,7 @@ class GUI:
         top.title("Create/Amend a Group")
 
         
-        # print(users)
+    
         
         
         frame = Frame(top)
@@ -436,7 +477,7 @@ class GUI:
         request = (grp_head).encode('utf-8')
         header = f"R{len(request):<{HEADER_LENGTH}}".encode('utf-8')
         self.current_client_socket.send(header + request)
-        self.round_robin_load_switcher()
+        self.load_switcher()
         top.destroy()
 
 
@@ -475,17 +516,25 @@ class GUI:
         top.destroy()
         self.join_group_button['text'] = 'Change Group'
         self.select_image_button.config(state = 'normal')
-        self.round_robin_load_switcher()
+        self.load_switcher()
 
-    def round_robin_load_switcher(self):
-        print(self.current_index)
-        self.current_index = cpuutil_load_balancer.get_port_from_table()  
-        print(self.current_index)
+    def load_switcher(self):
+
+        ####ROUND ROBIN LOAD SWITCHER
+        # self.current_index = load_balancer_round_robin.get_port_index()
+        # self.current_client_socket= self.client_sockets[self.current_index]
+
+
+        #####LOAD BALANCER BASED ON CPU UTILISATION
+        # self.current_index = cpuutil_load_balancer.get_port_from_table()
+        # self.current_client_socket= self.client_sockets[self.current_index]
+
+
+        #####LOAD BALANCER BASED ON ROUND ROBIN BUT ON CLIENT SIDE
+        self.current_index = (self.current_index +1)%(len(self.ports))
         self.current_client_socket= self.client_sockets[self.current_index]
-        print(self.current_index)
-        print(self.current_client_socket)
-        # self.initialize_socket(self.current_port)
-        # self.listen_for_incoming_messages_in_a_thread()
+
+
 
     def on_signup(self):
         """
@@ -505,13 +554,13 @@ class GUI:
 
             salt = bcrypt.gensalt()
             pwdhash = bcrypt.hashpw(password,salt).decode('utf-8')
-            print("before rsa")
+      
             public_key, private_key, insertmsgquery = enter_my_key(username,cursor)
-            print("after rsa")
+      
             userdetails = json.dumps({'token' : 'register','user' : username, 'pass' : pwdhash, 'public_key': public_key }).encode('utf-8')
             header = f"S{len(userdetails):<{HEADER_LENGTH}}".encode('utf-8')
             self.current_client_socket.send(header + userdetails)
-            print(len(userdetails))
+       
             code = self.current_client_socket.recv(10).decode('utf-8')
 
             if code == 'err_2':
@@ -548,13 +597,10 @@ class GUI:
             
             userdetails = json.dumps({'token' : 'join','user' : username, 'pass' : password}).encode('utf-8')
             header = f"A{len(userdetails):<{HEADER_LENGTH}}".encode('utf-8')
-            print("here")
-            # self.current_client_socket.send(header + userdetails)
-            # code = self.current_client_socket.recv(10).decode('utf-8')
-            # print(code)
+         
+    
             for port in self.ports:
-                print("here")
-                # print(cs)
+               
                 self.initialize_socket(port)
                 self.current_client_socket.send(header + userdetails)
                 code = self.current_client_socket.recv(10).decode('utf-8')
@@ -608,11 +654,11 @@ class GUI:
             fernetkeyquery = f'''
             Select key from {username[:-2]} where GroupName = \'{self.current_group}\'
             '''
-            print(self.current_group)
+          
             cursor.execute(fernetkeyquery)
             key = cursor.fetchall()
             key = key[0][0]
-            print("Send!! : ", key)
+        
             key = eval("b'" + key + "'")
             key = Fernet(key)
             message = key.encrypt(message)
@@ -620,7 +666,7 @@ class GUI:
             self.current_client_socket.send(message_header + message)
 
         self.enter_text_widget.delete(1.0, 'end')
-        self.round_robin_load_switcher()
+        self.load_switcher()
         return 'break'
 
     def on_close_window(self):
@@ -646,7 +692,7 @@ class GUI:
 #the mail function 
 if __name__ == '__main__':
     # proxy = xmlrpc.client.ServerProxy("http://localhost:8080/")
-    ports = [1234,1235]
+    ports = [1234]
     root = Tk()
     gui = GUI(root, ports)
     root.protocol("WM_DELETE_WINDOW", gui.on_close_window)

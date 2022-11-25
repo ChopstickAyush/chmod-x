@@ -6,8 +6,8 @@ import json
 import re
 import sys
 import psutil
-from load_balancer import cpuutil_load_balancer
-# from xmlrpc.server import SimpleXMLRPCServer
+# from load_balancer import cpuutil_load_balancer
+# from load_balancer import load_balancer_round_robin
 
 from groups import *
 
@@ -115,15 +115,17 @@ def receive_message(client_socket):
 
 
 
+############# UNCOMMENT THIS TO TEST CPUUTIL LOAD BALANCER
+# def log_cpu_util():
+#     while True:
+#         cpuutil_load_balancer.update_port_index(current_process.cpu_percent(1),PORT)
 
-def log_cpu_util():
-    while True:
-        cpuutil_load_balancer.update_port_index(current_process.cpu_percent(1),PORT)
 
 
+# perf_thread = threading.Thread(target=log_cpu_util, )
+# perf_thread.start()
+############# UNCOMMENT THIS TO TEST CPUUTIL LOAD BALANCER
 
-perf_thread = threading.Thread(target=log_cpu_util, )
-perf_thread.start()
 
 while True:
    
@@ -321,13 +323,22 @@ while True:
 
                 if messages is not None:
                 
-                    for usr, msg in messages:
+                    for usr, msg, isimage in messages:
                         counter =  get_message_counter(usr,group_name,msg,cursor)
                         message_to_send = json.dumps({'message': msg, 'user': usr, 'counter' : counter}).encode('utf-8')
                         message_len = len(message_to_send)
-                        message_ = f"M{message_len:<{HEADER_LENGTH}}".encode(
-                            'utf-8') + message_to_send
+
+                        if not isimage:
+                            message_ = f"M{message_len:<{HEADER_LENGTH}}".encode(
+                                'utf-8') + message_to_send
+                            
+                        else:
+                            message_ = f"I{message_len:<{HEADER_LENGTH}}".encode(
+                                'utf-8') + message_to_send
+                        
+
                         notified_socket.send(message_)
+
 
             elif message['header'].decode('utf-8')[0] == 'M' or message['header'].decode('utf-8')[0] == 'I':
                 # Get user by notified socket, so we will know who sent the message
@@ -336,9 +347,9 @@ while True:
                 
                 group_name = get_current_group(clients[notified_socket].userdetails,cursor)
                 counter = None
-                if (message['header'].decode('utf-8')[0] == 'M') :
+                if (message['header'].decode('utf-8')[0] == 'M' or message['header'].decode('utf-8')[0] == "I") :
                     sendmsg(username, group_name , cursor,
-                        message["data"].decode("utf-8"))
+                        message["data"].decode("utf-8"),message['header'].decode('utf-8')[0])
                     print(f'Received message from {username} in group{group_name}')
 
                     counter = get_message_counter(username,group_name,message["data"].decode("utf-8"),cursor)
@@ -360,7 +371,7 @@ while True:
                             header = f"M{message_len:<{HEADER_LENGTH}}".encode(
                                 'utf-8') 
                         elif (message['header'].decode('utf-8')[0] == 'I') :
-                            message_to_send = message['data']
+                            message_to_send = json.dumps({'message':  message['data'].decode(), 'user': username, 'counter' : counter}).encode('utf-8')
                             message_len = len(message_to_send)
                             header = f"I{message_len:<{HEADER_LENGTH}}".encode(
                                 'utf-8')

@@ -77,7 +77,7 @@ class LoadBalancerCPUUtil:
         get =f'''SELECT id from CPUUtil WHERE util =({min_util})'''
         self.cursor.execute(get)
         index = self.cursor.fetchone()[0]
-        return index
+        return index ### NOTE: YOU MIGHT HAVE TO do index-1 
         
     def create_tables(self) :
         
@@ -109,7 +109,7 @@ class LoadBalancerCPUUtil:
 conn = psycopg2.connect(
 database="postgres", user='postgres', password='1234', host='127.0.0.1', port= '5432')
 conn.autocommit = True
-n_ports =2 # NEED TO MANUALLY SET THIS
-ports = [1234,1235]
+n_ports =1 # NEED TO MANUALLY SET THIS
+ports = [1234,1235] # NEED TO MANUALLY ADD PORTS
 # load_balancer_round_robin = LoadBalancerRoundRobin(n_ports, conn.cursor())
 cpuutil_load_balancer = LoadBalancerCPUUtil(n_ports,ports,conn.cursor())

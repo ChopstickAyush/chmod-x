@@ -39,8 +39,9 @@ def create_tables(cursor) :
         DROP TABLE IF EXISTS Messages cascade;
         CREATE TABLE IF NOT EXISTS Messages (
         GroupName VARCHAR( 20 ), 
-        msg VARCHAR ( 10000 ), 
+        msg VARCHAR ( 1000000 ), 
         Name VARCHAR ( 20 ),
+        IsImage BOOLEAN,
         Time SERIAL
         );
 
@@ -58,9 +59,10 @@ def create_tables(cursor) :
 
     return
 
-def sendmsg(username,grpname,cursor,message):
+def sendmsg(username,grpname,cursor,message, type ="M"):
+    isImage = (type == "I")
     insertmsgquery = f'''
-    INSERT INTO  Messages(GroupName, msg, Name) VALUES (\'{grpname}\',\'{message}\', \'{username}\')'''
+    INSERT INTO  Messages(GroupName, msg, Name, IsImage) VALUES (\'{grpname}\',\'{message}\', \'{username}\',{isImage})'''
     cursor.execute(insertmsgquery)
     
 def get_message_counter(username, grpname, message,cursor):
@@ -91,7 +93,7 @@ def pendingmsg(username, grpname, cursor) :
     print(time)
     # pdb.set_trace()
     getmessagequery = f'''
-    Select Name, msg from Messages where Time > {time} AND GroupName = \'{grpname}\'
+    Select Name, msg, IsImage from Messages where Time > {time} AND GroupName = \'{grpname}\'
     '''
     cursor.execute(getmessagequery)
     rows = cursor.fetchall()
