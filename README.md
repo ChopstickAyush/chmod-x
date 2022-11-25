@@ -66,6 +66,18 @@ Comment in *load_balancer_round_robin*  inside *load_balancer.py* and comment ou
 #### Load Balancing Based on CPU utilisation
 Comment in *cpuutil_load_balancer*  inside *load_balancer.py* and comment out the other. Comment in *from load_balancer import cpuutil_load_balancer* inside *client.py*. Comment in *from load_balancer import cpuutil_load_balancer* inside *server.py* and the entire block which begins with *log_cpu_util()* and ends with *perf_thread.start()*
 
+#### Testing log file instructions 
+RUN ONLY ON LINUX FROM FILES ON TESTING FOLDER
+ADD a,b,c,d,e.... no of users you want through gui.
+Add all of them in a group named aa.
+You can try it on multiple groups with any names but in that case you need to change the input file accordingly :( .
+Just for testing you can run superanalysis directly setting the client and server according to the load balancing strategy you applied.
+In any adverse situation you can always contact us :) We can show you how to run the program.
+
+
+
+
+
 ### References:
 The intial code to setup the simple server and client was heavily influenced by the tutorial series
 **Sockets Tutorial with Python 3** by *Sentdex*
