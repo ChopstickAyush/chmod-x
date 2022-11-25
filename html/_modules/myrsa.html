@@ -1,0 +1,235 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>myrsa &#8212; FastChat 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for myrsa</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">cryptography.hazmat.primitives.asymmetric</span> <span class="kn">import</span> <span class="n">rsa</span>
+<span class="kn">from</span> <span class="nn">cryptography.hazmat.primitives</span> <span class="kn">import</span> <span class="n">hashes</span>
+<span class="kn">from</span> <span class="nn">cryptography.hazmat.primitives.asymmetric</span> <span class="kn">import</span> <span class="n">padding</span>
+<span class="kn">from</span> <span class="nn">cryptography.hazmat.backends</span> <span class="kn">import</span> <span class="n">default_backend</span>
+<span class="kn">from</span> <span class="nn">cryptography.hazmat.primitives</span> <span class="kn">import</span> <span class="n">serialization</span>
+<span class="kn">from</span> <span class="nn">cryptography.fernet</span> <span class="kn">import</span> <span class="n">Fernet</span>
+
+<div class="viewcode-block" id="generate_fernet"><a class="viewcode-back" href="../myrsa.html#myrsa.generate_fernet">[docs]</a><span class="k">def</span> <span class="nf">generate_fernet</span><span class="p">():</span> 
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function is used for generation for fernet key</span>
+<span class="sd">    </span>
+<span class="sd">    </span>
+<span class="sd">    :returns key: returns the generated key</span>
+<span class="sd">    :rtype key: fernet key</span>
+<span class="sd">    &quot;&quot;&quot;</span> 
+    <span class="n">key</span> <span class="o">=</span> <span class="n">Fernet</span><span class="o">.</span><span class="n">generate_key</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">key</span></div>
+
+<div class="viewcode-block" id="generatekey"><a class="viewcode-back" href="../myrsa.html#myrsa.generatekey">[docs]</a><span class="k">def</span> <span class="nf">generatekey</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function is used to generate rsa private and public key and return it.</span>
+<span class="sd">    </span>
+<span class="sd">    :returns public_key: returns the rsa public key</span>
+<span class="sd">    :rtype public_key: rsa_publickey</span>
+<span class="sd">    :returns private_key: returns the rsa private key</span>
+<span class="sd">    :rtype private_key: rsa_private_key</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">private_key</span> <span class="o">=</span> <span class="n">rsa</span><span class="o">.</span><span class="n">generate_private_key</span><span class="p">(</span>
+    <span class="n">public_exponent</span><span class="o">=</span><span class="mi">65537</span><span class="p">,</span>
+    <span class="n">key_size</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span>
+    <span class="n">backend</span><span class="o">=</span><span class="n">default_backend</span><span class="p">())</span>
+    <span class="n">public_key</span> <span class="o">=</span> <span class="n">private_key</span><span class="o">.</span><span class="n">public_key</span><span class="p">()</span>
+    <span class="k">return</span><span class="p">(</span><span class="n">public_key</span><span class="p">,</span><span class="n">private_key</span><span class="p">)</span></div>
+
+<span class="n">default_pad</span> <span class="o">=</span> <span class="n">padding</span><span class="o">.</span><span class="n">OAEP</span><span class="p">(</span><span class="n">mgf</span><span class="o">=</span><span class="n">padding</span><span class="o">.</span><span class="n">MGF1</span><span class="p">(</span><span class="n">algorithm</span><span class="o">=</span><span class="n">hashes</span><span class="o">.</span><span class="n">SHA256</span><span class="p">()),</span>
+        <span class="n">algorithm</span><span class="o">=</span><span class="n">hashes</span><span class="o">.</span><span class="n">SHA256</span><span class="p">(),</span><span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+<div class="viewcode-block" id="entergrp_key"><a class="viewcode-back" href="../myrsa.html#myrsa.entergrp_key">[docs]</a><span class="k">def</span> <span class="nf">entergrp_key</span><span class="p">(</span><span class="n">username</span><span class="p">,</span><span class="n">grpname</span><span class="p">,</span><span class="n">cursor</span><span class="p">,</span><span class="n">private_key</span><span class="p">,</span><span class="n">public_key</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Enter the group key in the database of each user for this group</span>
+
+<span class="sd">    </span>
+<span class="sd">    :param username: The username with whom the key is shared</span>
+<span class="sd">    :type username: string</span>
+<span class="sd">    :param grpname: The group whose key is shared</span>
+<span class="sd">    :type grpname: string</span>
+<span class="sd">    :param cursor: cursor to execute query</span>
+<span class="sd">    :type cursor: cursor.cursor</span>
+<span class="sd">    :param private_key: private key of the user</span>
+<span class="sd">    :type  private_key: rsa_private_key</span>
+<span class="sd">    :param public_key: public key of the user</span>
+<span class="sd">    :type public_key: rsa_public_key</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">insertmsgquery</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">    INSERT INTO  </span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="s1">(GroupName,public_key,private_key) VALUES (</span><span class="se">\&#39;</span><span class="si">{</span><span class="n">grpname</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1">,</span><span class="se">\&#39;</span><span class="si">{</span><span class="n">public_key</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1">, </span><span class="se">\&#39;</span><span class="si">{</span><span class="n">private_key</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1">)&#39;&#39;&#39;</span>
+    <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">insertmsgquery</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="public_encode"><a class="viewcode-back" href="../myrsa.html#myrsa.public_encode">[docs]</a><span class="k">def</span> <span class="nf">public_encode</span><span class="p">(</span><span class="n">public_key</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Deserialize the public key</span>
+<span class="sd">    </span>
+<span class="sd">    :param publickey: serialized public key</span>
+<span class="sd">    :type publickey: rsa_public_key</span>
+<span class="sd">    :returns publickey: unserialized public key</span>
+<span class="sd">    :rtype publickey: rsa_public_key</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">public_key</span><span class="o">.</span><span class="n">public_bytes</span><span class="p">(</span>
+           <span class="n">encoding</span><span class="o">=</span><span class="n">serialization</span><span class="o">.</span><span class="n">Encoding</span><span class="o">.</span><span class="n">PEM</span><span class="p">,</span>
+           <span class="nb">format</span><span class="o">=</span><span class="n">serialization</span><span class="o">.</span><span class="n">PublicFormat</span><span class="o">.</span><span class="n">SubjectPublicKeyInfo</span> <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="private_encode"><a class="viewcode-back" href="../myrsa.html#myrsa.private_encode">[docs]</a><span class="k">def</span> <span class="nf">private_encode</span><span class="p">(</span><span class="n">private_key</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;&quot;</span>
+<span class="sd">    Deserialize the private key</span>
+<span class="sd">    </span>
+<span class="sd">    :param privatekey: serialized private key</span>
+<span class="sd">    :type privatekey: rsa_private_key</span>
+<span class="sd">    :returns privatekey: unserialized private key</span>
+<span class="sd">    :rtype privatekey: rsa_private_key</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">private_key</span><span class="o">.</span><span class="n">private_bytes</span><span class="p">(</span>
+           <span class="n">encoding</span><span class="o">=</span><span class="n">serialization</span><span class="o">.</span><span class="n">Encoding</span><span class="o">.</span><span class="n">PEM</span><span class="p">,</span>
+           <span class="nb">format</span><span class="o">=</span><span class="n">serialization</span><span class="o">.</span><span class="n">PrivateFormat</span><span class="o">.</span><span class="n">TraditionalOpenSSL</span><span class="p">,</span>
+           <span class="n">encryption_algorithm</span><span class="o">=</span><span class="n">serialization</span><span class="o">.</span><span class="n">NoEncryption</span><span class="p">()</span>
+    <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="private_key_decode"><a class="viewcode-back" href="../myrsa.html#myrsa.private_key_decode">[docs]</a><span class="k">def</span> <span class="nf">private_key_decode</span><span class="p">(</span><span class="n">private_key</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Serialize the private key</span>
+<span class="sd">    </span>
+<span class="sd">    :param privatekey: unserialized private key</span>
+<span class="sd">    :type privatekey: rsa_private_key</span>
+<span class="sd">    :returns privatekey: serialized private key</span>
+<span class="sd">    :rtype privatekey: rsa_private_key</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">private_key</span><span class="o">=</span><span class="n">private_key</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+    <span class="n">private_key</span> <span class="o">=</span> <span class="n">serialization</span><span class="o">.</span><span class="n">load_pem_private_key</span><span class="p">(</span>
+        <span class="n">private_key</span><span class="p">,</span> 
+        <span class="n">password</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">private_key</span></div>
+
+<div class="viewcode-block" id="public_key_decode"><a class="viewcode-back" href="../myrsa.html#myrsa.public_key_decode">[docs]</a><span class="k">def</span> <span class="nf">public_key_decode</span><span class="p">(</span><span class="n">public_key</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Serialize the public key</span>
+<span class="sd">    </span>
+<span class="sd">    :param publickey: unserialized public key</span>
+<span class="sd">    :type publickey: rsa_public_key</span>
+<span class="sd">    :returns publickey: serialized public key</span>
+<span class="sd">    :rtype publickey: rsa_public_key</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">public_key</span><span class="o">=</span><span class="n">public_key</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+    <span class="n">public_key</span> <span class="o">=</span> <span class="n">serialization</span><span class="o">.</span><span class="n">load_pem_public_key</span><span class="p">(</span>
+        <span class="n">public_key</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">public_key</span></div>
+
+<div class="viewcode-block" id="enter_my_key"><a class="viewcode-back" href="../myrsa.html#myrsa.enter_my_key">[docs]</a><span class="k">def</span> <span class="nf">enter_my_key</span><span class="p">(</span><span class="n">username</span><span class="p">,</span><span class="n">cursor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Enter the key in user local database using insert query.</span>
+<span class="sd">    </span>
+<span class="sd">    :param username: name of the user</span>
+<span class="sd">    :type username: string</span>
+<span class="sd">    :param cursor: cursor to execute query</span>
+<span class="sd">    :type cursor: cursor.cursor</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="p">(</span><span class="n">public_key</span><span class="p">,</span><span class="n">private_key</span><span class="p">)</span><span class="o">=</span><span class="n">generatekey</span><span class="p">()</span>
+    <span class="n">public_key</span><span class="o">=</span> <span class="n">public_encode</span><span class="p">(</span><span class="n">public_key</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+    <span class="n">private_key</span><span class="o">=</span><span class="n">private_encode</span><span class="p">(</span><span class="n">private_key</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+    <span class="n">insertmsgquery</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">    INSERT INTO  </span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="s1">info (public_key,private_key) VALUES (%s,%s);&#39;&#39;&#39;</span>
+    <span class="c1">#cursor.execute(insertmsgquery,(public_key,private_key))</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">public_key</span><span class="p">,</span><span class="n">private_key</span><span class="p">,</span><span class="n">insertmsgquery</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">FastChat</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">Documentation</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2022, chmod+x.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

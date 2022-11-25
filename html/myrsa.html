@@ -1,0 +1,252 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>myrsa module &#8212; FastChat 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="server module" href="server.html" />
+    <link rel="prev" title="groups module" href="groups.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-myrsa">
+<span id="myrsa-module"></span><h1>myrsa module<a class="headerlink" href="#module-myrsa" title="Permalink to this heading">¶</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="myrsa.enter_my_key">
+<span class="sig-prename descclassname"><span class="pre">myrsa.</span></span><span class="sig-name descname"><span class="pre">enter_my_key</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">username</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cursor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/myrsa.html#enter_my_key"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#myrsa.enter_my_key" title="Permalink to this definition">¶</a></dt>
+<dd><p>Enter the key in user local database using insert query.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>username</strong> (<em>string</em>) – name of the user</p></li>
+<li><p><strong>cursor</strong> (<em>cursor.cursor</em>) – cursor to execute query</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="myrsa.entergrp_key">
+<span class="sig-prename descclassname"><span class="pre">myrsa.</span></span><span class="sig-name descname"><span class="pre">entergrp_key</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">username</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grpname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cursor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">private_key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">public_key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/myrsa.html#entergrp_key"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#myrsa.entergrp_key" title="Permalink to this definition">¶</a></dt>
+<dd><p>Enter the group key in the database of each user for this group</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>username</strong> (<em>string</em>) – The username with whom the key is shared</p></li>
+<li><p><strong>grpname</strong> (<em>string</em>) – The group whose key is shared</p></li>
+<li><p><strong>cursor</strong> (<em>cursor.cursor</em>) – cursor to execute query</p></li>
+<li><p><strong>private_key</strong> (<em>rsa_private_key</em>) – private key of the user</p></li>
+<li><p><strong>public_key</strong> (<em>rsa_public_key</em>) – public key of the user</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="myrsa.generate_fernet">
+<span class="sig-prename descclassname"><span class="pre">myrsa.</span></span><span class="sig-name descname"><span class="pre">generate_fernet</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/myrsa.html#generate_fernet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#myrsa.generate_fernet" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function is used for generation for fernet key</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns key<span class="colon">:</span></dt>
+<dd class="field-odd"><p>returns the generated key</p>
+</dd>
+<dt class="field-even">Rtype key<span class="colon">:</span></dt>
+<dd class="field-even"><p>fernet key</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="myrsa.generatekey">
+<span class="sig-prename descclassname"><span class="pre">myrsa.</span></span><span class="sig-name descname"><span class="pre">generatekey</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/myrsa.html#generatekey"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#myrsa.generatekey" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function is used to generate rsa private and public key and return it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns public_key<span class="colon">:</span></dt>
+<dd class="field-odd"><p>returns the rsa public key</p>
+</dd>
+<dt class="field-even">Rtype public_key<span class="colon">:</span></dt>
+<dd class="field-even"><p>rsa_publickey</p>
+</dd>
+<dt class="field-odd">Returns private_key<span class="colon">:</span></dt>
+<dd class="field-odd"><p>returns the rsa private key</p>
+</dd>
+<dt class="field-even">Rtype private_key<span class="colon">:</span></dt>
+<dd class="field-even"><p>rsa_private_key</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="myrsa.private_encode">
+<span class="sig-prename descclassname"><span class="pre">myrsa.</span></span><span class="sig-name descname"><span class="pre">private_encode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">private_key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/myrsa.html#private_encode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#myrsa.private_encode" title="Permalink to this definition">¶</a></dt>
+<dd><p>”
+Deserialize the private key</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>privatekey</strong> (<em>rsa_private_key</em>) – serialized private key</p>
+</dd>
+<dt class="field-even">Returns privatekey<span class="colon">:</span></dt>
+<dd class="field-even"><p>unserialized private key</p>
+</dd>
+<dt class="field-odd">Rtype privatekey<span class="colon">:</span></dt>
+<dd class="field-odd"><p>rsa_private_key</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="myrsa.private_key_decode">
+<span class="sig-prename descclassname"><span class="pre">myrsa.</span></span><span class="sig-name descname"><span class="pre">private_key_decode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">private_key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/myrsa.html#private_key_decode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#myrsa.private_key_decode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Serialize the private key</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>privatekey</strong> (<em>rsa_private_key</em>) – unserialized private key</p>
+</dd>
+<dt class="field-even">Returns privatekey<span class="colon">:</span></dt>
+<dd class="field-even"><p>serialized private key</p>
+</dd>
+<dt class="field-odd">Rtype privatekey<span class="colon">:</span></dt>
+<dd class="field-odd"><p>rsa_private_key</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="myrsa.public_encode">
+<span class="sig-prename descclassname"><span class="pre">myrsa.</span></span><span class="sig-name descname"><span class="pre">public_encode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">public_key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/myrsa.html#public_encode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#myrsa.public_encode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deserialize the public key</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>publickey</strong> (<em>rsa_public_key</em>) – serialized public key</p>
+</dd>
+<dt class="field-even">Returns publickey<span class="colon">:</span></dt>
+<dd class="field-even"><p>unserialized public key</p>
+</dd>
+<dt class="field-odd">Rtype publickey<span class="colon">:</span></dt>
+<dd class="field-odd"><p>rsa_public_key</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="myrsa.public_key_decode">
+<span class="sig-prename descclassname"><span class="pre">myrsa.</span></span><span class="sig-name descname"><span class="pre">public_key_decode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">public_key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/myrsa.html#public_key_decode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#myrsa.public_key_decode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Serialize the public key</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>publickey</strong> (<em>rsa_public_key</em>) – unserialized public key</p>
+</dd>
+<dt class="field-even">Returns publickey<span class="colon">:</span></dt>
+<dd class="field-even"><p>serialized public key</p>
+</dd>
+<dt class="field-odd">Rtype publickey<span class="colon">:</span></dt>
+<dd class="field-odd"><p>rsa_public_key</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">FastChat</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="client.html">client module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="groups.html">groups module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">myrsa module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="server.html">server module</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="modules.html">Documentation</a><ul>
+      <li>Previous: <a href="groups.html" title="previous chapter">groups module</a></li>
+      <li>Next: <a href="server.html" title="next chapter">server module</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2022, chmod+x.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/myrsa.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
