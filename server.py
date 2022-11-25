@@ -7,7 +7,7 @@ import re
 import sys
 import psutil
 # from load_balancer import cpuutil_load_balancer
-# from load_balancer import load_balancer_round_robin
+
 
 from groups import *
 
@@ -403,10 +403,6 @@ while True:
                         send_message_in_packets(cs,message_to_send,header,message_len)
                 
             elif message['header'].decode('utf-8')[0] == 'Q':
-                    # Get user by notified socket, so we will know who sent the message
-                # user = clients[notified_socket]
-                
-             
                 y=(json.loads(message["data"].decode("utf-8")))
                 group_name=y["groupname"]
 

@@ -6,11 +6,10 @@ from PIL import Image, ImageTk
 import socket #Sockets for network connection
 import threading # for multiple proccess 
 import json
-import pickle
 import numpy as np
 import bcrypt
 import psycopg2
-import base64 
+import random
 from myrsa import *
 # from load_balancer import load_balancer_round_robin
 from load_balancer import cpuutil_load_balancer
@@ -411,13 +410,6 @@ class GUI:
         img_header = f"I{len(send):<{HEADER_LENGTH}}".encode('utf-8')
         self.current_client_socket.send(img_header + send)
         self.load_switcher()
-
-    
-        
-        
-        # message_header = f"M{len(message):<{HEADER_LENGTH}}".encode('utf-8')
-        # self.current_client_socket.send(message_header + message)
-
         
       
 
@@ -534,6 +526,9 @@ class GUI:
         self.current_index = (self.current_index +1)%(len(self.ports))
         self.current_client_socket= self.client_sockets[self.current_index]
 
+        ##### RANDOM LOAD SWITCHER
+        # self.curent_index = random.randint(0,len(self.ports)-1)
+        # self.current_client_socket= self.client_sockets[self.current_index]
 
 
     def on_signup(self):
@@ -692,7 +687,7 @@ class GUI:
 #the mail function 
 if __name__ == '__main__':
     # proxy = xmlrpc.client.ServerProxy("http://localhost:8080/")
-    ports = [1234]
+    ports = [1234,1235]
     root = Tk()
     gui = GUI(root, ports)
     root.protocol("WM_DELETE_WINDOW", gui.on_close_window)

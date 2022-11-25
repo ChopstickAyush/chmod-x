@@ -30,7 +30,7 @@ def create_tables(cursor) :
     """
 
     create ='''
-       
+        DROP TABLE IF EXISTS Users cascade; 
         CREATE TABLE IF NOT EXISTS Users (
         Name VARCHAR ( 20 ) PRIMARY KEY,
         Password VARCHAR ( 72 ) NOT NULL,
@@ -38,7 +38,7 @@ def create_tables(cursor) :
         public_key VARCHAR(20000)
         );
 
-       
+        DROP TABLE IF EXISTS UserGroupInfo cascade;
         CREATE TABLE IF NOT EXISTS UserGroupInfo (
         Name VARCHAR ( 20 ),
         GroupName VARCHAR ( 20 ),
@@ -51,7 +51,7 @@ def create_tables(cursor) :
         REFERENCES Groups (GroupName)
         );
 
-        
+        DROP TABLE IF EXISTS Messages cascade;
         CREATE TABLE IF NOT EXISTS Messages (
         GroupName VARCHAR( 20 ), 
         msg VARCHAR ( 1000000 ), 
@@ -60,7 +60,7 @@ def create_tables(cursor) :
         Time SERIAL
         );
 
-      
+        DROP TABLE IF EXISTS Groups cascade;
         CREATE TABLE IF NOT EXISTS Groups (
         GroupName VARCHAR ( 20 ) PRIMARY KEY,
         public_key VARCHAR(1000),

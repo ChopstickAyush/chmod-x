@@ -44,4 +44,30 @@ Now, once the tkinter window is opened, the following options are available :
 
 6. Chatbox : Simply typing the messages in the chatbox and pressing enter sends the message in the chatroom :)
 
+### How to use mulitple servers?
+For multiserver setup, you have to run each *server.py* as 
+```console
+python server.py <port>
+```
+Ensure that the *<port>* matches with the list at the bottom of *client.py* names *ports*. If you use
+*Load Balancing Based on CPU utilisation* given below, make sure to do the same in *load_balancer.py*
+
+### How to use different load balancing methods?
+The default load balancer is a client-side Round Robin, which is basically switching servers after each request. The other two methods of load balancing are :
+1. Standard Round Robin
+2. Load Balancing Based on CPU utilisation
+3. Random Load Balancer
+
+To use any of them, first go to the function *load_switcher(self)* and then comment out whatever is present there, and uncomment the load balancer you want to use.
+There are some additional steps you need to follow to test out *Standard Round Robin* and *Load Balancing Based on CPU utilisation*
+#### Standard Round Robin
+Comment in *load_balancer_round_robin*  inside *load_balancer.py* and comment out the other. Comment in *from load_balancer import load_balancer_round_robin* inside *client.py*
+
+#### Load Balancing Based on CPU utilisation
+Comment in *cpuutil_load_balancer*  inside *load_balancer.py* and comment out the other. Comment in *from load_balancer import cpuutil_load_balancer* inside *client.py*. Comment in *from load_balancer import cpuutil_load_balancer* inside *server.py* and the entire block which begins with *log_cpu_util()* and ends with *perf_thread.start()*
+
+### References:
+The intial code to setup the simple server and client was heavily influenced by the tutorial series
+**Sockets Tutorial with Python 3** by *Sentdex*
+
 &copy; 23/11/2022 : This project is developed, maintained and the intellectual property of Ayush Agarwal, Sankalan Baidya and Soham Joshi, currently Undergraduate Sophomores in the CSE Department@IIT Bombay.

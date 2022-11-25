@@ -60,11 +60,6 @@ class LoadBalancerCPUUtil:
         self.cursor = cursor
         self.create_tables()
 
-    # def get_port_index(self):
-    #     self.current_port_index = (self.get_port_index_from_table())%self.num_ports
-    #     self.update_port_index()
-    #     return self.current_port_index
-
     def update_port_index(self,cpu_util,port):
         update =f'''UPDATE CPUUtil SET util = ({cpu_util}) WHERE port = ({port})'''
         self.cursor.execute(update)
