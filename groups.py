@@ -15,20 +15,16 @@ conn.autocommit = True
 def create_tables(cursor) :
 
     create ='''
-        DROP TABLE IF EXISTS Users cascade; 
+        
         CREATE TABLE IF NOT EXISTS Users (
         Name VARCHAR ( 20 ) PRIMARY KEY,
-        Password VARCHAR ( 72 ) NOT NULL,
-        CurrentGroup VARCHAR ( 20 ) DEFAULT NULL,
-        public_key VARCHAR(20000)
+        Password VARCHAR ( 72 ) NOT NULL
         );
-
-        DROP TABLE IF EXISTS UserGroupInfo cascade;
+        
         CREATE TABLE IF NOT EXISTS UserGroupInfo (
         Name VARCHAR ( 20 ),
         GroupName VARCHAR ( 20 ),
         Isadmin BOOLEAN, 
-        Coded_Key TEXT ,
         Time INT DEFAULT 0,
         FOREIGN KEY (Name)
         REFERENCES Users (Name),
@@ -36,19 +32,15 @@ def create_tables(cursor) :
         REFERENCES Groups (GroupName)
         );
 
-        DROP TABLE IF EXISTS Messages cascade;
         CREATE TABLE IF NOT EXISTS Messages (
         GroupName VARCHAR( 20 ), 
-        msg VARCHAR ( 10000 ), 
+        msg VARCHAR ( 100 ), 
         Name VARCHAR ( 20 ),
         Time SERIAL
         );
 
-        DROP TABLE IF EXISTS Groups cascade;
         CREATE TABLE IF NOT EXISTS Groups (
-        GroupName VARCHAR ( 20 ) PRIMARY KEY,
-        public_key VARCHAR(1000),
-        private_key VARCHAR(1000)
+        GroupName VARCHAR ( 20 ) PRIMARY KEY
         );
     '''
 
@@ -60,15 +52,11 @@ def create_tables(cursor) :
 
 def sendmsg(username,grpname,cursor,message):
     insertmsgquery = f'''
-    INSERT INTO  Messages(GroupName, msg, Name) VALUES (\'{grpname}\',\'{message}\', \'{username}\')'''
+    INSERT INTO Messages(GroupName, msg, Name) VALUES (\'{grpname}\',\'{message}\', \'{username}\')'''
     cursor.execute(insertmsgquery)
     
-def get_message_counter(username, grpname, message,cursor):
-    getcounterquery = f'''
-    Select Time from Messages where Name=\'{username}\' AND GroupName=\'{grpname}\' AND msg = \'{message}\''''
-    cursor.execute(getcounterquery)
-    time = cursor.fetchone()[0]
-    return time
+
+
 def pendingmsg(username, grpname, cursor) :
     '''
     grpname : string
@@ -88,23 +76,25 @@ def pendingmsg(username, grpname, cursor) :
         time = time[0]
 
     # using this time to get list of messages after this time. 
-    print(time)
+    # print(time)
     # pdb.set_trace()
     getmessagequery = f'''
-    Select Name, msg from Messages where Time > {time} AND GroupName = \'{grpname}\'
+    Select Name, msg from Messages where Time >= {time} AND GroupName = \'{grpname}\'
     '''
     cursor.execute(getmessagequery)
     rows = cursor.fetchall()
 
+    # Update the last seen message 
+    curtimequery = f'''Select Max(Time) from Messages where GroupName = \'{grpname}\' '''
+    cursor.execute(curtimequery)
+    curtime = cursor.fetchone()
 
-    min_time_query = f'''Select Min(Time) From UserGroupInfo WHERE GroupName = \'{grpname}\' '''
-    cursor.execute(min_time_query)
-    min_time = cursor.fetchone()[0]
-
-    print(min_time)
-    delete_msg_query = f'''DELETE From Messages WHERE GroupName = \'{grpname}\' AND Time <= {min_time} '''
-    cursor.execute(delete_msg_query)
-
+    if len(curtime) > 0:
+        if  curtime[0] is not None:
+            updatetimequery = f'''
+            Update UserGroupInfo SET Time = ({curtime[0]})
+            '''
+            cursor.execute(updatetimequery)
     return rows
 
     
@@ -127,9 +117,8 @@ def creategrp(grpname, names, cursor) :
     
     # Now, creating the group .
 
-    public_key, private_key = rsa.newkeys(random.randint(100,500))
     creategrpquery = f'''
-    INSERT INTO Groups (GroupName, public_key, private_key) VALUES (\'{grpname}\', \'{public_key}\', \'{private_key}\')
+    INSERT INTO Groups (GroupName) VALUES (\'{grpname}\')
     '''
     cursor.execute(creategrpquery)
 
@@ -189,23 +178,44 @@ def validate(name, password ,cursor) :
             return True
         return False
 
-# def add_public_key(user,publickey,cursor):
-#     insert = f'''
-#         UPDATE Users SET public_key='{publickey}' WHERE Name = '{user}'
-#         '''
-#     cursor.execute(insert)
 
-def add_user(name, password, public_key,  cursor):
+def add_user(name, password, cursor):
     
     if not check_user_name(name,cursor):
         insert = f'''
-                INSERT INTO Users (Name, Password, public_key) VALUES ('{name}', '{password}', '{public_key}');
+                INSERT INTO Users (Name, Password) VALUES ('{name}', '{password}');
                 '''
         cursor.execute(insert)
         print('User Added!')
 
+def get_all_users(cursor,ex=None):
+    if ex is None:
+        query = f'''SELECT Name From Users;'''
+    else:
+        query = f'''SELECT Name From Users WHERE Name != \'{ex}\''''
+    cursor.execute(query)
+    names = []
+    lst = cursor.fetchall()
+    if (lst == None): return []
+    else:
+        for i in lst:
+            names.append(i[0])
+        return names
 
 def remove_users_from_group(name,grpname,admin,cursor):
+    """
+    DELETE query to remove members from a group.
+    
+    :param name: list of people to be removed 
+    :type name: list of strings
+    :param admin: name of the admin
+    :type admin: string 
+    :param grpname: groupname of the names
+    :type grpname: string
+    :param cursor: cursor to execute query
+    :type cursor: cursor.cursor
+    
+    """
     grpquery = f'''
     Select count(*) from UserGroupInfo where GroupName = \'{grpname}\'
     '''
@@ -236,22 +246,15 @@ def remove_users_from_group(name,grpname,admin,cursor):
             cursor.execute(query)
             query = f'''DELETE FROM Groups WHERE GroupName =\'{grpname}\' '''
             cursor.execute(query)
-            query = f'''DELETE FROM Messages WHERE  GroupName =\'{grpname}\' '''
-            cursor.execute(query)
             return
         else:
             query = f'''DELETE FROM UserGroupInfo WHERE Name =\'{name}\' AND GroupName =\'{grpname}\' '''
             cursor.execute(query)
             return
 
-    
-
 #temporary function
 #it doesnt check if the user is already present or not
-def enter_group(name,admin,grpname):
-
-    print("Group Enter query :", name, admin, grpname)
-
+def enter_group(name,grpname, cursor):
     grpquery = f'''
     Select count(*) from UserGroupInfo where GroupName = \'{grpname}\'
     '''
@@ -259,9 +262,9 @@ def enter_group(name,admin,grpname):
     count = cursor.fetchone()[0]
     #pdb.set_trace()
     if count == 0 : 
-        public_key, private_key = rsa.newkeys(random.randint(100,500))
+
         creategrpquery = f'''
-        INSERT INTO Groups (GroupName, public_key, private_key) VALUES (\'{grpname}\', \'{public_key}\', \'{private_key}\')
+        INSERT INTO Groups (GroupName) VALUES (\'{grpname}\')
         '''
         cursor.execute(creategrpquery)
         insertnamesquery = f'''
@@ -269,67 +272,20 @@ def enter_group(name,admin,grpname):
             '''
         cursor.execute(insertnamesquery)
     else:
-        getadminquery = f'''
-            Select Name FROM UserGroupInfo WHERE Isadmin = TRUE AND GroupName = \'{grpname}\'
-            '''
-        cursor.execute(getadminquery)
-
-        Admin = cursor.fetchone()[0]
-        # to do proper error messages
-        if Admin != admin:
-            print("Admin check failed")
-            return
         checkquery = f'''
             Select * FROM UserGroupInfo WHERE Name =\'{name}\' AND GroupName =\'{grpname}\'
             '''
         cursor.execute(checkquery)
         results = cursor.fetchall()
-        print(results)
+        # print(results)
         if len(results) !=0 :
-            print("Already present")
             return
         insertnamesquery = f'''
             INSERT INTO UserGroupInfo (Name, GroupName, IsAdmin) VALUES (\'{name}\', \'{grpname}\', FALSE)
             '''
         cursor.execute(insertnamesquery)
-        print("Insertion successful")
 
-def set_private_key(username , groupname, privatekey,cursor):
-    query = f'''UPDATE UserGroupInfo Set Coded_Key = \'{privatekey}\' WHERE Name =\'{username}\' AND GroupName=\'{groupname}\''''
-    cursor.execute(query)
-    
-def set_current_group(name,grpname,cursor,remove= False):
-    query = f'''UPDATE Users Set CurrentGroup = \'{grpname}\' WHERE Name =\'{name}\''''
-    if remove:
-        query = f'''UPDATE Users Set CurrentGroup = NULL WHERE Name =\'{name}\''''
-    cursor.execute(query)
-
-def get_current_group(name,cursor):
-    query = f'''SELECT CurrentGroup From Users WHERE Name =\'{name}\''''
-    cursor.execute(query)
-    result = cursor.fetchone()[0]
-    return result
-
-def get_encoded_key(name,grpname,cursor):
-    query = f'''SELECT Coded_Key From UserGroupInfo WHERE Name =\'{name}\' AND GroupName = \'{grpname}\' '''
-    cursor.execute(query)
-    result = cursor.fetchone()[0]
-    result = result.replace("\\\\","\\")
-    return result
-
-def update_client_counter(name,grpname,counter,cursor):
-    timequery = f'''SELECT Time From Messages WHERE GroupName = \'{grpname}\''''
-    cursor.execute(timequery)
-    time = cursor.fetchone()[0]
-    max_time = max(time,counter)
-
-    update_query = f'''  
-    UPDATE UserGroupInfo SET Time = ({max_time}) WHERE Name =\'{name}\' AND GroupName = \'{grpname}\' 
-    '''
-    cursor.execute(update_query)
-    
-
-
+#Creating a cursor object using the cursor() method
 cursor = conn.cursor()
 
 #Preparing query to create a database
