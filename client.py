@@ -669,7 +669,7 @@ class GUI:
         This handles exiting the GUI
         """
         if messagebox.askokcancel("Quit", "Do you want to quit?"):
-            if self.current_client_socket is None:
+            if self.current_client_socket is None or not self.has_joined:
                 self.root.destroy()
                 exit(0)
             username = json.dumps({'user' : self.name_widget.get()}).encode('utf-8')
