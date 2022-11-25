@@ -1,0 +1,497 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>server &#8212; FastChat 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for server</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">pdb</span>
+<span class="kn">import</span> <span class="nn">socket</span>
+<span class="kn">import</span> <span class="nn">select</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="c1"># from xmlrpc.server import SimpleXMLRPCServer</span>
+
+<span class="kn">from</span> <span class="nn">groups</span> <span class="kn">import</span> <span class="o">*</span>
+
+
+<span class="n">HEADER_LENGTH</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="n">LARGEST_PACKET_LENGTH</span> <span class="o">=</span> <span class="mi">1024</span>
+
+<span class="n">IP</span> <span class="o">=</span> <span class="s2">&quot;127.0.0.1&quot;</span>
+<span class="n">PORT</span> <span class="o">=</span> <span class="mi">1234</span>
+
+
+<div class="viewcode-block" id="Client"><a class="viewcode-back" href="../server.html#server.Client">[docs]</a><span class="k">class</span> <span class="nc">Client</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This is the class client to be used by server to hold parameters of client like userdetails and socket.</span>
+<span class="sd">    </span>
+<span class="sd">    :param userdetails: Name of the user</span>
+<span class="sd">    :type userdetails: string</span>
+<span class="sd">    :param socket: socket used by the client</span>
+<span class="sd">    :type socket: socket.socket</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">socket</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">userdetails</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1">#public_key = None</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">socket</span><span class="p">,</span> <span class="n">userdetails</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This is the constructor for the Client class\n</span>
+<span class="sd">        :param userdetails: Name of the user</span>
+<span class="sd">        :type userdetails: string</span>
+<span class="sd">        :param socket: socket used by the client</span>
+<span class="sd">        :type socket: socket.socket</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">socket</span> <span class="o">=</span> <span class="n">socket</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">userdetails</span> <span class="o">=</span> <span class="n">userdetails</span></div>
+        <span class="c1">#self.public_key = public_key</span>
+
+
+<span class="c1"># Create a socket</span>
+<span class="c1"># socket.AF_INET - address family, IPv4, some otehr possible are AF_INET6, AF_BLUETOOTH, AF_UNIX</span>
+<span class="c1"># socket.SOCK_STREAM - TCP, conection-based, socket.SOCK_DGRAM - UDP, connectionless, datagrams, socket.SOCK_RAW - raw IP packets</span>
+<span class="n">server_socket</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">)</span>
+
+<span class="c1"># SO_ - socket option</span>
+<span class="c1"># SOL_ - socket option level</span>
+<span class="c1"># Sets REUSEADDR (as a socket option) to 1 on socket</span>
+<span class="n">server_socket</span><span class="o">.</span><span class="n">setsockopt</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">SOL_SOCKET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SO_REUSEADDR</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+<span class="c1"># Bind, so server informs operating system that it&#39;s going to use given IP and port</span>
+<span class="c1"># For a server using 0.0.0.0 means to listen on all available interfaces, useful to connect locally to 127.0.0.1 and remotely to LAN interface IP</span>
+<span class="n">server_socket</span><span class="o">.</span><span class="n">bind</span><span class="p">((</span><span class="n">IP</span><span class="p">,</span> <span class="n">PORT</span><span class="p">))</span>
+
+<span class="c1"># This makes server listen to new connections</span>
+<span class="n">server_socket</span><span class="o">.</span><span class="n">listen</span><span class="p">()</span>
+
+<span class="c1"># List of sockets for select.select()</span>
+<span class="n">sockets_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">server_socket</span><span class="p">]</span>
+
+<span class="c1"># List of connected clients - socket as a key, user header and name as data</span>
+<span class="n">clients</span> <span class="o">=</span> <span class="p">{}</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Listening for connections on </span><span class="si">{</span><span class="n">IP</span><span class="si">}</span><span class="s1">:</span><span class="si">{</span><span class="n">PORT</span><span class="si">}</span><span class="s1">...&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="send_message_in_packets"><a class="viewcode-back" href="../server.html#server.send_message_in_packets">[docs]</a><span class="k">def</span> <span class="nf">send_message_in_packets</span><span class="p">(</span><span class="n">client_socket</span><span class="p">,</span><span class="n">message</span><span class="p">,</span><span class="n">header</span> <span class="p">,</span><span class="n">length</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A function used to send a message in packet form to the clients to minimize loss of data.</span>
+
+<span class="sd">    :param client_socket: socket to which message has to be send </span>
+<span class="sd">    :type socket: socket.socket</span>
+<span class="sd">    :param header: header of message containing initial details of the message</span>
+<span class="sd">    :type header: string</span>
+<span class="sd">    :param length: Total length of the message</span>
+<span class="sd">    :type length: int</span>
+<span class="sd">    :param message: message to be send </span>
+<span class="sd">    :type message: string</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">client_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">header</span><span class="p">)</span>
+    <span class="k">while</span> <span class="n">length</span> <span class="o">&gt;</span> <span class="n">LARGEST_PACKET_LENGTH</span><span class="p">:</span>
+          <span class="n">length</span> <span class="o">-=</span> <span class="n">LARGEST_PACKET_LENGTH</span>
+          <span class="n">client_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">message</span><span class="p">[:</span><span class="n">LARGEST_PACKET_LENGTH</span><span class="p">])</span>
+          <span class="n">message</span> <span class="o">=</span> <span class="n">message</span><span class="p">[</span><span class="n">LARGEST_PACKET_LENGTH</span><span class="p">:]</span>
+    <span class="k">if</span> <span class="n">length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">client_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;SEND SUCESSFULL&#39;</span><span class="p">)</span>
+    <span class="k">return</span></div>
+
+<span class="c1"># Handles message receiving</span>
+<div class="viewcode-block" id="receive_message"><a class="viewcode-back" href="../server.html#server.receive_message">[docs]</a><span class="k">def</span> <span class="nf">receive_message</span><span class="p">(</span><span class="n">client_socket</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The function that listens the message from client_socket and returns this information further</span>
+<span class="sd">    by splitting it into two parts header containing type of message and data containg the message</span>
+<span class="sd">    :param client_socket: socket from which message is listened</span>
+<span class="sd">    :type socket: socket.socket</span>
+
+<span class="sd">    :returns header: type of message</span>
+<span class="sd">    :type header: string</span>
+<span class="sd">    :returns data: actual message</span>
+<span class="sd">    :type data: string</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+
+        <span class="c1"># Receive our &quot;header&quot; containing message length, it&#39;s size is defined and constant</span>
+        <span class="n">message_header</span> <span class="o">=</span> <span class="n">client_socket</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="n">HEADER_LENGTH</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># If we received no data, client gracefully closed a connection, for example using socket.close() or socket.shutdown(socket.SHUT_RDWR)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">message_header</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="n">filtered_msg</span> <span class="o">=</span> <span class="n">message_header</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">filtered_msg</span><span class="p">)</span>
+        <span class="c1"># Convert header to int value</span>
+        <span class="n">message_length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">filtered_msg</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+        <span class="k">while</span> <span class="n">message_length</span> <span class="o">&gt;</span> <span class="n">LARGEST_PACKET_LENGTH</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">+=</span> <span class="n">client_socket</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="n">LARGEST_PACKET_LENGTH</span><span class="p">)</span>
+            <span class="n">message_length</span> <span class="o">-=</span> <span class="n">LARGEST_PACKET_LENGTH</span>
+
+        <span class="k">if</span> <span class="n">message_length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="n">client_socket</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="n">message_length</span><span class="p">)</span>
+            <span class="n">message</span> <span class="o">+=</span> <span class="n">msg</span>
+
+        <span class="c1"># Return an object of message header and message data</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;header&#39;</span><span class="p">:</span> <span class="n">message_header</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="n">message</span><span class="p">}</span>
+
+    <span class="k">except</span><span class="p">:</span>
+
+        <span class="c1"># If we are here, client closed connection violently, for example by pressing ctrl+c on his script</span>
+        <span class="c1"># or just lost his connection</span>
+        <span class="c1"># socket.close() also invokes socket.shutdown(socket.SHUT_RDWR) what sends information about closing the socket (shutdown read/write)</span>
+        <span class="c1"># and that&#39;s also a cause when we receive an empty message</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+
+<span class="k">while</span> <span class="kc">False</span><span class="p">:</span>
+    <span class="n">read_sockets</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">exception_sockets</span> <span class="o">=</span> <span class="n">select</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+        <span class="n">sockets_list</span><span class="p">,</span> <span class="p">[],</span> <span class="n">sockets_list</span><span class="p">)</span>
+
+    <span class="c1"># Iterate over notified sockets</span>
+    <span class="k">for</span> <span class="n">notified_socket</span> <span class="ow">in</span> <span class="n">read_sockets</span><span class="p">:</span>
+
+        <span class="c1"># If notified socket is a server socket - new connection, accept it</span>
+        <span class="k">if</span> <span class="n">notified_socket</span> <span class="o">==</span> <span class="n">server_socket</span><span class="p">:</span>
+
+            <span class="c1"># Accept new connection</span>
+            <span class="c1"># That gives us new socket - client socket, connected to this given client only, it&#39;s unique for that client</span>
+            <span class="c1"># The other returned object is ip/port set</span>
+            <span class="n">client_socket</span><span class="p">,</span> <span class="n">client_address</span> <span class="o">=</span> <span class="n">server_socket</span><span class="o">.</span><span class="n">accept</span><span class="p">()</span>
+
+            <span class="c1"># Client should send his name right away, receive it</span>
+            <span class="c1"># user = receive_message(client_socket)</span>
+            <span class="n">userpass</span> <span class="o">=</span> <span class="n">receive_message</span><span class="p">(</span><span class="n">client_socket</span><span class="p">)</span>
+            <span class="c1"># If False - client disconnected before he sent his name</span>
+            <span class="k">if</span> <span class="n">userpass</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">userdetails</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">userpass</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">])</span>
+
+            <span class="nb">print</span><span class="p">(</span><span class="n">userdetails</span><span class="p">)</span>
+            <span class="c1"># err_1 validation failed</span>
+            <span class="k">if</span> <span class="n">userdetails</span><span class="p">[</span><span class="s1">&#39;token&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;join&#39;</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;join request&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">validate</span><span class="p">(</span><span class="n">userdetails</span><span class="p">[</span><span class="s1">&#39;user&#39;</span><span class="p">],</span> <span class="n">userdetails</span><span class="p">[</span><span class="s1">&#39;pass&#39;</span><span class="p">],</span> <span class="n">cursor</span><span class="p">):</span>
+                    <span class="n">client_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="s2">&quot;err_1&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span>
+                    <span class="k">continue</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">client_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="s2">&quot;suc_0&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span>
+
+            <span class="k">elif</span> <span class="n">userdetails</span><span class="p">[</span><span class="s1">&#39;token&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;register&#39;</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;register request&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">check_user_name</span><span class="p">(</span><span class="n">userdetails</span><span class="p">[</span><span class="s1">&#39;user&#39;</span><span class="p">],</span> <span class="n">cursor</span><span class="p">):</span>
+                    <span class="n">client_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="s2">&quot;err_2&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">add_user</span><span class="p">(</span><span class="n">userdetails</span><span class="p">[</span><span class="s1">&#39;user&#39;</span><span class="p">],</span> <span class="n">userdetails</span><span class="p">[</span><span class="s1">&#39;pass&#39;</span><span class="p">],</span><span class="n">userdetails</span><span class="p">[</span><span class="s1">&#39;public_key&#39;</span><span class="p">]</span> <span class="p">,</span><span class="n">cursor</span><span class="p">)</span>
+                    <span class="c1"># enter_group(userdetails[&#39;user&#39;], &#39;Test&#39;)</span>
+                    <span class="n">client_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="s2">&quot;suc_0&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span>
+                <span class="k">continue</span>
+            
+            <span class="c1"># Add accepted socket to select.select() list</span>
+            <span class="n">sockets_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">client_socket</span><span class="p">)</span>
+
+            <span class="c1"># Also save username and username header</span>
+            <span class="n">clients</span><span class="p">[</span><span class="n">client_socket</span><span class="p">]</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span>
+                <span class="n">client_socket</span><span class="p">,</span> <span class="n">userdetails</span><span class="p">[</span><span class="s1">&#39;user&#39;</span><span class="p">])</span>
+
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Accepted new connection from </span><span class="si">{}</span><span class="s1">:</span><span class="si">{}</span><span class="s1">, username: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="o">*</span><span class="n">client_address</span><span class="p">,</span> <span class="n">userdetails</span><span class="p">[</span><span class="s1">&#39;user&#39;</span><span class="p">]))</span>
+
+        <span class="c1"># Else existing socket is sending a message</span>
+        <span class="k">else</span><span class="p">:</span>
+
+            <span class="c1"># Receive message</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="n">receive_message</span><span class="p">(</span><span class="n">notified_socket</span><span class="p">)</span>
+            
+            <span class="nb">print</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+            <span class="c1"># If False, client disconnected, cleanup</span>
+            <span class="k">if</span> <span class="n">message</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Closed connection from: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">clients</span><span class="p">[</span><span class="n">notified_socket</span><span class="p">]</span><span class="o">.</span><span class="n">userdetails</span><span class="p">))</span>
+
+                <span class="c1"># Remove from list for socket.socket()</span>
+                <span class="n">sockets_list</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">notified_socket</span><span class="p">)</span>
+
+                <span class="c1"># Remove from our list of users</span>
+                <span class="k">del</span> <span class="n">clients</span><span class="p">[</span><span class="n">notified_socket</span><span class="p">]</span>
+
+                <span class="k">continue</span>
+
+            <span class="n">username</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="n">notified_socket</span><span class="p">]</span><span class="o">.</span><span class="n">userdetails</span>
+            <span class="c1"># print(message[&#39;header&#39;][0])</span>
+            <span class="k">if</span> <span class="n">message</span><span class="p">[</span><span class="s1">&#39;header&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;R&#39;</span><span class="p">:</span>
+                <span class="n">details</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span>
+                <span class="n">group_name</span> <span class="o">=</span> <span class="n">details</span><span class="p">[</span><span class="s1">&#39;groupname&#39;</span><span class="p">]</span>
+
+                <span class="n">users_list_add</span> <span class="o">=</span> <span class="n">details</span><span class="p">[</span><span class="s1">&#39;members_to_add&#39;</span><span class="p">]</span>
+                <span class="n">users_list_remove</span> <span class="o">=</span> <span class="n">details</span><span class="p">[</span><span class="s1">&#39;members_to_remove&#39;</span><span class="p">]</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">users_list_add</span><span class="p">,</span> <span class="n">users_list_remove</span><span class="p">)</span>
+                <span class="n">users_lst_add</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">users_lst_remove</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">users_list_add</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">check_user_name</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">cursor</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="n">username</span><span class="p">):</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="s1">&#39; is and invalid username!&#39;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">users_lst_add</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">users_list_remove</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">check_user_name</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">cursor</span><span class="p">):</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="s1">&#39; is and invalid username!&#39;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">users_lst_remove</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+                <span class="n">users_lst_add</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">username</span><span class="p">)</span>
+                <span class="n">users_lst_add</span> <span class="o">=</span> <span class="n">users_lst_add</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">mydict</span><span class="o">=</span><span class="p">{}</span>
+                <span class="c1"># enter_group(username,username ,group_name)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">users_lst_add</span><span class="p">:</span>
+                    <span class="n">enter_group</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">username</span> <span class="p">,</span><span class="n">group_name</span><span class="p">)</span>
+                    <span class="n">key</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;&#39;&#39;Select public_key from Users where Name=</span><span class="se">\&#39;</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1">&#39;&#39;&#39;</span>
+                    <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+                    <span class="n">rows</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">row</span> <span class="o">=</span> <span class="n">rows</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">mydict</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">row</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">mydict</span><span class="p">)</span>
+
+                <span class="c1"># Assuming no person called groupname</span>
+                <span class="n">mydict</span><span class="p">[</span><span class="s2">&quot;groupname&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">group_name</span>
+
+                <span class="n">send_public_keys</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">mydict</span><span class="p">)</span>    
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">clients</span> <span class="p">:</span> 
+                    <span class="k">if</span> <span class="n">clients</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">userdetails</span><span class="o">==</span> <span class="n">username</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="n">username</span><span class="p">)</span>
+                        <span class="n">message_to_send</span><span class="o">=</span> <span class="n">send_public_keys</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+                        <span class="n">message_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">message_to_send</span><span class="p">)</span>   
+                        <span class="n">message_</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;L</span><span class="si">{</span><span class="n">message_len</span><span class="si">:</span><span class="s2">&lt;</span><span class="si">{</span><span class="n">HEADER_LENGTH</span><span class="si">}}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span><span class="o">+</span><span class="n">message_to_send</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="n">message_</span><span class="p">)</span>
+                        <span class="n">i</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">message_</span><span class="p">)</span>
+                        <span class="k">break</span>
+
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">users_lst_add</span><span class="p">:</span>
+                    <span class="n">enter_group</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">username</span> <span class="p">,</span><span class="n">group_name</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">users_lst_remove</span><span class="p">:</span>
+                    <span class="n">remove_users_from_group</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">group_name</span><span class="p">,</span><span class="n">username</span><span class="p">,</span><span class="n">cursor</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">message</span><span class="p">[</span><span class="s1">&#39;header&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;J&#39;</span><span class="p">:</span>
+                <span class="n">group_name</span> <span class="o">=</span> <span class="n">message</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">group_name</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">check_group</span><span class="p">(</span><span class="n">group_name</span><span class="p">,</span><span class="n">username</span><span class="p">,</span><span class="n">cursor</span><span class="p">):</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;err_0&#39;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+                    <span class="n">header</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;E</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span><span class="si">:</span><span class="s2">&lt;</span><span class="si">{</span><span class="n">HEADER_LENGTH</span><span class="si">}}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> 
+                    <span class="n">notified_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">header</span> <span class="o">+</span> <span class="n">msg</span><span class="p">)</span>
+                    <span class="k">continue</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="n">group_name</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+                <span class="n">header</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;E</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span><span class="si">:</span><span class="s2">&lt;</span><span class="si">{</span><span class="n">HEADER_LENGTH</span><span class="si">}}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> 
+                <span class="n">notified_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">header</span> <span class="o">+</span> <span class="n">msg</span><span class="p">)</span>
+                
+                <span class="n">set_current_group</span><span class="p">(</span><span class="n">clients</span><span class="p">[</span><span class="n">notified_socket</span><span class="p">]</span><span class="o">.</span><span class="n">userdetails</span><span class="p">,</span><span class="n">group_name</span><span class="p">,</span><span class="n">cursor</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">cs</span> <span class="ow">in</span> <span class="n">clients</span><span class="p">:</span>
+                    <span class="c1"># But don&#39;t sent it to sender</span>
+                    <span class="k">if</span> <span class="n">cs</span> <span class="o">!=</span> <span class="n">notified_socket</span> <span class="ow">and</span> <span class="n">get_current_group</span><span class="p">(</span><span class="n">clients</span><span class="p">[</span><span class="n">cs</span><span class="p">]</span><span class="o">.</span><span class="n">userdetails</span><span class="p">,</span><span class="n">cursor</span><span class="p">)</span> <span class="o">==</span> <span class="n">group_name</span><span class="p">:</span>
+                        <span class="c1"># Send user and message (both with their headers)</span>
+                        <span class="n">other_user</span> <span class="o">=</span> <span class="n">clients</span><span class="p">[</span><span class="n">cs</span><span class="p">]</span><span class="o">.</span><span class="n">userdetails</span>
+                        <span class="n">join_message_to_others</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="n">username</span> <span class="o">+</span> <span class="s2">&quot; has joined!&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+                        <span class="n">join_message_len_1</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">join_message_to_others</span><span class="p">)</span>
+                        <span class="n">message_1</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;J</span><span class="si">{</span><span class="n">join_message_len_1</span><span class="si">:</span><span class="s2">&lt;</span><span class="si">{</span><span class="n">HEADER_LENGTH</span><span class="si">}}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+                            <span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">join_message_to_others</span>
+
+                        <span class="c1"># print(join_message_to_others.decode(&#39;utf-8&#39;))</span>
+                        <span class="n">join_message_to_new_user</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="n">other_user</span> <span class="o">+</span> <span class="s2">&quot; has joined!&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+                        <span class="n">join_message_len_2</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">join_message_to_new_user</span><span class="p">)</span>
+                        <span class="n">message_2</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;J</span><span class="si">{</span><span class="n">join_message_len_2</span><span class="si">:</span><span class="s2">&lt;</span><span class="si">{</span><span class="n">HEADER_LENGTH</span><span class="si">}}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+                            <span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">join_message_to_new_user</span>
+                        <span class="c1"># We are reusing here message header sent by sender, and saved username header send by user when he connected</span>
+                        <span class="n">cs</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">message_1</span><span class="p">)</span>
+                        <span class="n">notified_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">message_2</span><span class="p">)</span>
+ 
+                        
+                <span class="n">key</span> <span class="o">=</span> <span class="n">get_encoded_key</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">group_name</span><span class="p">,</span><span class="n">cursor</span><span class="p">)</span>
+                <span class="n">message_to_send</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">&quot;fernet_key&quot;</span> <span class="p">:</span> <span class="n">key</span><span class="p">,</span> <span class="s2">&quot;groupname&quot;</span> <span class="p">:</span> <span class="n">group_name</span><span class="p">})</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">({</span><span class="s2">&quot;fernet_key&quot;</span> <span class="p">:</span> <span class="n">key</span><span class="p">,</span> <span class="s2">&quot;groupname&quot;</span> <span class="p">:</span> <span class="n">group_name</span><span class="p">})</span>
+                <span class="n">message_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">message_to_send</span><span class="p">)</span>
+                <span class="n">message_</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Z</span><span class="si">{</span><span class="n">message_len</span><span class="si">:</span><span class="s2">&lt;</span><span class="si">{</span><span class="n">HEADER_LENGTH</span><span class="si">}}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">message_to_send</span>
+                <span class="n">notified_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">message_</span><span class="p">)</span>
+
+
+                <span class="n">messages</span> <span class="o">=</span> <span class="n">pendingmsg</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">group_name</span><span class="p">,</span> <span class="n">cursor</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">messages</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="c1"># print(messages)</span>
+                    <span class="k">for</span> <span class="n">usr</span><span class="p">,</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">:</span>
+                        <span class="n">counter</span> <span class="o">=</span>  <span class="n">get_message_counter</span><span class="p">(</span><span class="n">usr</span><span class="p">,</span><span class="n">group_name</span><span class="p">,</span><span class="n">msg</span><span class="p">,</span><span class="n">cursor</span><span class="p">)</span>
+                        <span class="n">message_to_send</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s1">&#39;message&#39;</span><span class="p">:</span> <span class="n">msg</span><span class="p">,</span> <span class="s1">&#39;user&#39;</span><span class="p">:</span> <span class="n">usr</span><span class="p">,</span> <span class="s1">&#39;counter&#39;</span> <span class="p">:</span> <span class="n">counter</span><span class="p">})</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+                        <span class="n">message_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">message_to_send</span><span class="p">)</span>
+                        <span class="n">message_</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;M</span><span class="si">{</span><span class="n">message_len</span><span class="si">:</span><span class="s2">&lt;</span><span class="si">{</span><span class="n">HEADER_LENGTH</span><span class="si">}}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+                            <span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">message_to_send</span>
+                        <span class="n">notified_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">message_</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">message</span><span class="p">[</span><span class="s1">&#39;header&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;M&#39;</span> <span class="ow">or</span> <span class="n">message</span><span class="p">[</span><span class="s1">&#39;header&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;I&#39;</span><span class="p">:</span>
+                <span class="c1"># Get user by notified socket, so we will know who sent the message</span>
+                <span class="c1"># user = clients[notified_socket]</span>
+
+                <span class="c1"># print(userdetails[&#39;user&#39;])</span>
+                <span class="n">group_name</span> <span class="o">=</span> <span class="n">get_current_group</span><span class="p">(</span><span class="n">clients</span><span class="p">[</span><span class="n">notified_socket</span><span class="p">]</span><span class="o">.</span><span class="n">userdetails</span><span class="p">,</span><span class="n">cursor</span><span class="p">)</span>
+                <span class="n">counter</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s1">&#39;header&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;M&#39;</span><span class="p">)</span> <span class="p">:</span>
+                    <span class="n">sendmsg</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">group_name</span> <span class="p">,</span> <span class="n">cursor</span><span class="p">,</span>
+                        <span class="n">message</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">))</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Received message from </span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="s1">: </span><span class="si">{</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span><span class="si">}</span><span class="s1"> in group</span><span class="si">{</span><span class="n">group_name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+                    <span class="n">counter</span> <span class="o">=</span> <span class="n">get_message_counter</span><span class="p">(</span><span class="n">username</span><span class="p">,</span><span class="n">group_name</span><span class="p">,</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">),</span><span class="n">cursor</span><span class="p">)</span>
+                <span class="c1"># Iterate over connected clients and broadcast message</span>
+                <span class="k">for</span> <span class="n">cs</span> <span class="ow">in</span> <span class="n">clients</span><span class="p">:</span>
+        
+                    <span class="c1"># But don&#39;t sent it to sender</span>
+                    <span class="k">if</span> <span class="n">cs</span> <span class="o">!=</span> <span class="n">notified_socket</span> <span class="ow">and</span> <span class="n">get_current_group</span><span class="p">(</span><span class="n">clients</span><span class="p">[</span><span class="n">cs</span><span class="p">]</span><span class="o">.</span><span class="n">userdetails</span><span class="p">,</span><span class="n">cursor</span><span class="p">)</span> <span class="o">==</span> <span class="n">group_name</span><span class="p">:</span>
+
+                        <span class="c1"># Send user and message (both with their headers)</span>
+                        <span class="c1"># pdb.set_trace()</span>
+                        <span class="n">message_to_send</span> <span class="o">=</span> <span class="kc">None</span>
+                        
+                        <span class="n">header</span> <span class="o">=</span> <span class="kc">None</span>
+                        <span class="n">message_to_send</span> <span class="o">=</span> <span class="kc">None</span>
+                        <span class="k">if</span> <span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s1">&#39;header&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;M&#39;</span><span class="p">)</span> <span class="p">:</span>
+                            <span class="n">message_to_send</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s1">&#39;message&#39;</span><span class="p">:</span>  <span class="n">message</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(),</span> <span class="s1">&#39;user&#39;</span><span class="p">:</span> <span class="n">username</span><span class="p">,</span> <span class="s1">&#39;counter&#39;</span> <span class="p">:</span> <span class="n">counter</span><span class="p">})</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+                            <span class="n">message_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">message_to_send</span><span class="p">)</span>
+                            <span class="n">header</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;M</span><span class="si">{</span><span class="n">message_len</span><span class="si">:</span><span class="s2">&lt;</span><span class="si">{</span><span class="n">HEADER_LENGTH</span><span class="si">}}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+                                <span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> 
+                        <span class="k">elif</span> <span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s1">&#39;header&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;I&#39;</span><span class="p">)</span> <span class="p">:</span>
+                            <span class="n">message_to_send</span> <span class="o">=</span> <span class="n">message</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span>
+                            <span class="n">message_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">message_to_send</span><span class="p">)</span>
+                            <span class="n">header</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;I</span><span class="si">{</span><span class="n">message_len</span><span class="si">:</span><span class="s2">&lt;</span><span class="si">{</span><span class="n">HEADER_LENGTH</span><span class="si">}}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+                                <span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+                        <span class="c1"># We are reusing here message header sent by sender, and saved username header send by user when he connected</span>
+                        <span class="c1"># cs.send(message_)</span>
+                        <span class="n">send_message_in_packets</span><span class="p">(</span><span class="n">cs</span><span class="p">,</span><span class="n">message_to_send</span><span class="p">,</span><span class="n">header</span><span class="p">,</span><span class="n">message_len</span><span class="p">)</span>
+                
+            <span class="k">elif</span> <span class="n">message</span><span class="p">[</span><span class="s1">&#39;header&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;Q&#39;</span><span class="p">:</span>
+                    <span class="c1"># Get user by notified socket, so we will know who sent the message</span>
+                <span class="c1"># user = clients[notified_socket]</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Reached below Q&quot;</span><span class="p">)</span>
+                <span class="c1"># print(userdetails[1])</span>
+                <span class="c1">#group_name = clients[notified_socket].current_group</span>
+                <span class="n">y</span><span class="o">=</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)))</span>
+                <span class="n">group_name</span><span class="o">=</span><span class="n">y</span><span class="p">[</span><span class="s2">&quot;groupname&quot;</span><span class="p">]</span>
+
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">y</span> <span class="p">:</span> 
+                    <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="s2">&quot;groupname&quot;</span> <span class="p">:</span> <span class="k">continue</span>
+                    <span class="n">x</span><span class="o">=</span><span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span><span class="s2">&quot;&#39;&#39;&quot;</span><span class="p">)</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span><span class="p">,</span><span class="s2">&quot;</span><span class="se">\\\\</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                    <span class="n">set_private_key</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">group_name</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span><span class="n">cursor</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">message</span><span class="p">[</span><span class="s1">&#39;header&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;V&#39;</span><span class="p">:</span>
+                 <span class="n">mesg</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">))</span>
+                 <span class="n">update_client_counter</span><span class="p">(</span><span class="n">mesg</span><span class="p">[</span><span class="s1">&#39;user&#39;</span><span class="p">],</span><span class="n">mesg</span><span class="p">[</span><span class="s1">&#39;group_name&#39;</span><span class="p">],</span><span class="n">mesg</span><span class="p">[</span><span class="s1">&#39;counter&#39;</span><span class="p">],</span><span class="n">cursor</span><span class="p">)</span>
+                
+           
+            
+
+
+    <span class="c1"># It&#39;s not really necessary to have this, but will handle some socket exceptions just in case</span>
+    <span class="k">for</span> <span class="n">notified_socket</span> <span class="ow">in</span> <span class="n">exception_sockets</span><span class="p">:</span>
+
+        <span class="c1"># Remove from list for socket.socket()</span>
+        <span class="n">sockets_list</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">notified_socket</span><span class="p">)</span>
+
+        <span class="c1"># Remove from our list of users</span>
+        <span class="k">del</span> <span class="n">clients</span><span class="p">[</span><span class="n">notified_socket</span><span class="p">]</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">FastChat</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">Documentation</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2022, chmod+x.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

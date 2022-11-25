@@ -1,0 +1,730 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>client &#8212; FastChat 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for client</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">from</span> <span class="nn">tkinter</span> <span class="kn">import</span> <span class="n">Tk</span><span class="p">,</span><span class="n">Toplevel</span> <span class="p">,</span><span class="n">Frame</span><span class="p">,</span> <span class="n">Scrollbar</span><span class="p">,</span> <span class="n">Label</span><span class="p">,</span> <span class="n">END</span><span class="p">,</span> <span class="n">Entry</span><span class="p">,</span> <span class="n">Text</span><span class="p">,</span> <span class="n">VERTICAL</span><span class="p">,</span> <span class="n">Button</span><span class="p">,</span> <span class="n">messagebox</span><span class="p">,</span> <span class="n">Checkbutton</span><span class="p">,</span> <span class="n">IntVar</span> <span class="c1">#Tkinter Python Module for GUI  </span>
+<span class="kn">import</span> <span class="nn">tkinter</span> <span class="k">as</span> <span class="nn">tk</span>
+<span class="kn">from</span> <span class="nn">tkinter.filedialog</span> <span class="kn">import</span> <span class="n">askopenfilename</span>
+<span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span><span class="p">,</span> <span class="n">ImageTk</span>
+<span class="kn">import</span> <span class="nn">socket</span> <span class="c1">#Sockets for network connection</span>
+<span class="kn">import</span> <span class="nn">threading</span> <span class="c1"># for multiple proccess </span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">bcrypt</span>
+<span class="kn">import</span> <span class="nn">psycopg2</span>
+<span class="kn">import</span> <span class="nn">base64</span> 
+<span class="kn">from</span> <span class="nn">myrsa</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="n">HEADER_LENGTH</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="n">LARGEST_PACKET_LENGTH</span> <span class="o">=</span> <span class="mi">1024</span>
+
+<span class="n">conn2</span> <span class="o">=</span> <span class="n">psycopg2</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+        <span class="n">database</span><span class="o">=</span><span class="s2">&quot;postgres&quot;</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="s1">&#39;postgres&#39;</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="s1">&#39;1234&#39;</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="s1">&#39;127.0.0.1&#39;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span> <span class="s1">&#39;5432&#39;</span>
+    <span class="p">)</span>
+<span class="n">conn2</span><span class="o">.</span><span class="n">autocommit</span> <span class="o">=</span><span class="kc">True</span>
+<span class="n">cursor</span> <span class="o">=</span> <span class="n">conn2</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+<div class="viewcode-block" id="user_table"><a class="viewcode-back" href="../client.html#client.user_table">[docs]</a><span class="k">def</span> <span class="nf">user_table</span><span class="p">(</span><span class="n">username</span><span class="p">):</span>
+    <span class="n">create</span><span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">            DROP TABLE IF EXISTS </span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="s1"> cascade;</span>
+<span class="s1">            CREATE TABLE IF NOT EXISTS </span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="s1"> (</span>
+<span class="s1">            GroupName VARCHAR ( 20 ),</span>
+<span class="s1">            key VARCHAR(1000) </span>
+<span class="s1">            );</span>
+<span class="s1">            </span>
+<span class="s1">            DROP TABLE IF EXISTS </span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="s1">info cascade;</span>
+<span class="s1">            CREATE TABLE IF NOT EXISTS </span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="s1">info(</span>
+<span class="s1">            public_key VARCHAR (4096),</span>
+<span class="s1">            private_key VARCHAR (4096)</span>
+<span class="s1">            );&#39;&#39;&#39;</span>
+    <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">create</span><span class="p">)</span></div>
+<div class="viewcode-block" id="GUI"><a class="viewcode-back" href="../client.html#client.GUI">[docs]</a><span class="k">class</span> <span class="nc">GUI</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This is the implementation of the client side GUI, that interacts with the server.</span>
+<span class="sd">    </span>
+<span class="sd">    :param current_client_socket: This holds the socket object initialized with TCP anf IPv4</span>
+<span class="sd">    :type client: socket</span>
+<span class="sd">    :param root: This is the main Tkinter window</span>
+<span class="sd">    :type root: Tk</span>
+<span class="sd">    :param chat_transcript_area: This is the box in the GUI where the chat appears</span>
+<span class="sd">    :type chat_transcript_area: Text</span>
+<span class="sd">    :param has_joined: This is a variable indicating whether the client has connected to the server.</span>
+<span class="sd">    :type has_joined: bool</span>
+<span class="sd">    :param has_registered: This is a variable indicating whether the client has been registered in the server side database</span>
+<span class="sd">    :type has_registered: bool</span>
+<span class="sd">    :param current_group: This indicates the current group the user is in</span>
+<span class="sd">    :type current_group:  string</span>
+<span class="sd">    :param name_widget: This is the Tkinter widget that takes the username input</span>
+<span class="sd">    :type name_widget: Entry</span>
+<span class="sd">    :param pass_widget: This is the Tkinter widget that takes the password input</span>
+<span class="sd">    :type pass_widget: Entry</span>
+<span class="sd">    :param enter_text_widget: This is the Tkinter widget that takes the chat message from the user</span>
+<span class="sd">    :type enter_text_widget: Entry</span>
+<span class="sd">    :param join_button: On pressing this button the user gets connected to the server</span>
+<span class="sd">    :type join_button: Button</span>
+<span class="sd">    :param create_group_button: This allows the client to create/amend any group(if it exists)</span>
+<span class="sd">    :type create_group_button: Button</span>
+<span class="sd">    :param join_group_button: This allows the client to join any group they it is already a member</span>
+<span class="sd">    :type join_group_button: Button</span>
+<span class="sd">    :param sign_up_button: This allows the client to resgiter their username into the server</span>
+<span class="sd">    :type sign_up_button: Button</span>
+<span class="sd">    :param group_name_widget: This is where the group name is inputted while creating a group</span>
+<span class="sd">    :type group_name_widget: Entry</span>
+<span class="sd">    :param add_members_widget: This is the comma separted values of the members who are to be added into the group</span>
+<span class="sd">    :type add_members_widget: Entry</span>
+<span class="sd">    :param join_group_name_widget: This is where the group name is inputted while joining a group</span>
+<span class="sd">    :type join_group_name_widget: Entry</span>
+<span class="sd">     &quot;&quot;&quot;</span>
+    
+    <span class="n">last_received_message</span> <span class="o">=</span> <span class="kc">None</span>
+    
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">master</span><span class="p">,</span> <span class="n">ports</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This is the constructor for the GUI class\n</span>
+<span class="sd">        :param master: This main Tkinter Window</span>
+<span class="sd">        :type master: Tk</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># self.proxy = proxy</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ports</span> <span class="o">=</span> <span class="n">ports</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client_sockets</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">=</span> <span class="n">master</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">has_joined</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">has_registered</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_group</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name_widget</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pass_widget</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enter_text_widget</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">join_button</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_group_button</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">join_group_button</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sign_up_button</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">group_name_widget</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_members_widget</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">join_group_name_widget</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">select_image_button</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_port</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initialize_gui</span><span class="p">()</span>
+        
+
+
+<div class="viewcode-block" id="GUI.initialize_socket"><a class="viewcode-back" href="../client.html#client.GUI.initialize_socket">[docs]</a>    <span class="k">def</span> <span class="nf">initialize_socket</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">remote_port</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This is used to initialize the client side socket</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">)</span> <span class="c1"># initialazing socket with TCP and IPv4</span>
+        <span class="n">remote_ip</span> <span class="o">=</span> <span class="s1">&#39;127.0.0.1&#39;</span> <span class="c1"># IP address </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="o">.</span><span class="n">connect</span><span class="p">((</span><span class="n">remote_ip</span><span class="p">,</span> <span class="n">remote_port</span><span class="p">))</span></div>
+        <span class="c1"># self.client_sockets.append(self.current_client_socket)</span>
+
+
+<div class="viewcode-block" id="GUI.initialize_gui"><a class="viewcode-back" href="../client.html#client.GUI.initialize_gui">[docs]</a>    <span class="k">def</span> <span class="nf">initialize_gui</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="c1"># GUI initializer</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This is the GUI initializer</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Socket Chat&quot;</span><span class="p">)</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">resizable</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">display_name_section</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">display_chat_box</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_port</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ports</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">current_index</span><span class="p">]</span></div>
+        <span class="c1"># self.initialize_sockets()</span>
+        
+        
+        
+    
+<div class="viewcode-block" id="GUI.listen_for_incoming_messages_in_a_thread"><a class="viewcode-back" href="../client.html#client.GUI.listen_for_incoming_messages_in_a_thread">[docs]</a>    <span class="k">def</span> <span class="nf">listen_for_incoming_messages_in_a_thread</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This runs the function receive_message_from_server in a parallel thread.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">receive_message_from_server</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="p">,))</span>
+        <span class="n">thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span></div>
+        
+<div class="viewcode-block" id="GUI.receive_message_from_server"><a class="viewcode-back" href="../client.html#client.GUI.receive_message_from_server">[docs]</a>    <span class="k">def</span> <span class="nf">receive_message_from_server</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">so</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This is used to recieve and handle all kinds of messages/responses from the server</span>
+<span class="sd">        :param so: This is the client socket object</span>
+<span class="sd">        :type so: socket</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+
+            <span class="n">header</span> <span class="o">=</span> <span class="n">so</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="n">HEADER_LENGTH</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+            <span class="c1"># If we received no data, server gracefully closed a connection, for example using socket.close() or socket.shutdown(socket.SHUT_RDWR)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">header</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">,</span><span class="s1">&#39;Connection closed by the server&#39;</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="k">break</span>
+                <span class="c1"># print(&#39;Connection closed by the server&#39;)</span>
+                <span class="c1"># sys.exit()</span>
+
+            <span class="n">filtered_msg</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">filtered_msg</span><span class="p">)</span>
+
+            <span class="n">length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">filtered_msg</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+            <span class="k">while</span> <span class="n">length</span> <span class="o">&gt;</span> <span class="n">LARGEST_PACKET_LENGTH</span><span class="p">:</span>
+                  <span class="n">message</span> <span class="o">+=</span> <span class="n">so</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="n">LARGEST_PACKET_LENGTH</span><span class="p">)</span>
+                  <span class="n">length</span> <span class="o">-=</span> <span class="n">LARGEST_PACKET_LENGTH</span>
+
+            <span class="k">if</span> <span class="n">length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">message</span> <span class="o">+=</span> <span class="n">so</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="n">length</span><span class="p">)</span>
+
+
+            
+            <span class="c1"># Receive and decode username</span>
+            <span class="k">if</span> <span class="n">filtered_msg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;E&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;err_0&quot;</span><span class="p">:</span>
+                    <span class="n">messagebox</span><span class="o">.</span><span class="n">showerror</span><span class="p">(</span><span class="s2">&quot;Invalid GroupName&quot;</span><span class="p">,</span> <span class="s2">&quot;Either the group doesn&#39;t exist or you&#39;re not in the group!&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">enter_text_widget</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">state</span><span class="o">=</span><span class="s1">&#39;normal&#39;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_group</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">,</span><span class="sa">f</span><span class="s1">&#39;You have left </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current_group</span><span class="si">}</span><span class="s1">!&#39;</span> <span class="o">+</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">yview</span><span class="p">(</span><span class="n">END</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">current_group</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_group</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">,</span><span class="sa">f</span><span class="s1">&#39;You have joined </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current_group</span><span class="si">}</span><span class="s1">!&#39;</span> <span class="o">+</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">yview</span><span class="p">(</span><span class="n">END</span><span class="p">)</span>
+            
+            <span class="k">elif</span> <span class="n">filtered_msg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;I&#39;</span> <span class="p">:</span>
+                <span class="n">image</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">message</span><span class="p">))</span>
+                <span class="n">image</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">filtered_msg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;L&#39;</span> <span class="p">:</span>
+                <span class="n">message</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+                <span class="n">username</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name_widget</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+                <span class="n">groupname</span> <span class="o">=</span> <span class="n">message</span><span class="p">[</span><span class="s2">&quot;groupname&quot;</span><span class="p">]</span>
+                    
+                <span class="n">grpexistquery</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">                Select count(*) from </span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="s1"> where GroupName = </span><span class="se">\&#39;</span><span class="si">{</span><span class="n">groupname</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1">&#39;&#39;&#39;</span>
+                <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">grpexistquery</span><span class="p">)</span>
+                <span class="n">rows</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">if</span> <span class="n">rows</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span> <span class="p">:</span>
+                    <span class="n">key</span><span class="o">=</span><span class="n">generate_fernet</span><span class="p">()</span>
+                    <span class="n">key</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">)[</span><span class="mi">2</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;FERNET : </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">)))</span>
+                    <span class="n">insertkey</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">                    INSERT INTO </span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="s1"> VALUES (</span><span class="se">\&#39;</span><span class="si">{</span><span class="n">groupname</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1">, </span><span class="se">\&#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1">);</span>
+<span class="s1">                    &#39;&#39;&#39;</span>
+                    <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">insertkey</span><span class="p">)</span>
+                <span class="k">else</span> <span class="p">:</span> 
+                    <span class="n">privatequery</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">                    Select key from </span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="s1"> where GroupName = </span>
+<span class="s1">                    </span><span class="se">\&#39;</span><span class="si">{</span><span class="n">groupname</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1"></span>
+<span class="s1">                    &#39;&#39;&#39;</span>
+                    <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">privatequery</span><span class="p">)</span>
+                    <span class="n">key</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">key</span> <span class="o">=</span> <span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">mykey</span><span class="o">=</span><span class="nb">dict</span><span class="p">({})</span>
+                
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">message</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="s2">&quot;groupname&quot;</span> <span class="p">:</span> 
+                        <span class="n">mykey</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">message</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                        <span class="k">continue</span>
+                    <span class="n">public_client</span><span class="o">=</span><span class="n">public_key_decode</span><span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                    <span class="n">mykey</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">public_client</span><span class="o">.</span><span class="n">encrypt</span><span class="p">(</span><span class="nb">eval</span><span class="p">(</span><span class="s2">&quot;b&#39;&quot;</span> <span class="o">+</span> <span class="n">key</span> <span class="o">+</span> <span class="s2">&quot;&#39;&quot;</span><span class="p">),</span> <span class="n">default_pad</span><span class="p">))</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">public_client</span><span class="o">.</span><span class="n">encrypt</span><span class="p">(</span><span class="nb">eval</span><span class="p">(</span><span class="s2">&quot;b&#39;&quot;</span> <span class="o">+</span> <span class="n">key</span> <span class="o">+</span> <span class="s2">&quot;&#39;&quot;</span><span class="p">),</span> <span class="n">default_pad</span><span class="p">)),</span> <span class="n">mykey</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+                <span class="n">a</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">mykey</span><span class="p">)</span>
+                <span class="n">request</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+                <span class="n">header</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Q</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">request</span><span class="p">)</span><span class="si">:</span><span class="s2">&lt;</span><span class="si">{</span><span class="n">HEADER_LENGTH</span><span class="si">}}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">header</span> <span class="o">+</span> <span class="n">request</span><span class="p">)</span>
+            
+            <span class="k">elif</span> <span class="n">filtered_msg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;Z&#39;</span> <span class="p">:</span>
+                <span class="n">message</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+                <span class="n">username</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name_widget</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Received fernet key : &quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+
+                <span class="n">fernet_key</span> <span class="o">=</span> <span class="n">message</span><span class="p">[</span><span class="s2">&quot;fernet_key&quot;</span><span class="p">]</span>
+                
+                <span class="n">pvtkeyquery</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">                Select private_key from </span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="s1">info;</span>
+<span class="s1">                &#39;&#39;&#39;</span>
+                <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">pvtkeyquery</span><span class="p">)</span>
+                <span class="n">keys</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">private_key</span> <span class="o">=</span> <span class="n">keys</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                
+                <span class="n">private_key</span> <span class="o">=</span> <span class="n">private_key_decode</span><span class="p">(</span><span class="n">private_key</span><span class="p">)</span>
+                <span class="n">fernet_key</span> <span class="o">=</span> <span class="n">private_key</span><span class="o">.</span><span class="n">decrypt</span><span class="p">(</span><span class="nb">eval</span><span class="p">(</span><span class="n">fernet_key</span><span class="p">),</span> <span class="n">default_pad</span><span class="p">)</span>
+                <span class="n">fernet_key</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">fernet_key</span><span class="p">)[</span><span class="mi">2</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">fernet_key</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;BEFORE INSERTION&quot;</span><span class="p">)</span>
+                <span class="n">insertkeyquery</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">                Insert into </span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="s1"> (GroupName, Key) VALUES (</span><span class="se">\&#39;</span><span class="si">{</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;groupname&quot;</span><span class="p">]</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1">, </span><span class="se">\&#39;</span><span class="si">{</span><span class="n">fernet_key</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1">) </span>
+<span class="s1">                &#39;&#39;&#39;</span>
+                <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">insertkeyquery</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;hi&quot;</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">filtered_msg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;J&#39;</span> <span class="p">:</span>
+                 <span class="n">message</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+                 <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">tag_config</span><span class="p">(</span><span class="s1">&#39;warning&#39;</span><span class="p">,</span> <span class="n">foreground</span><span class="o">=</span><span class="s2">&quot;green&quot;</span><span class="p">)</span>
+                 <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">,</span><span class="n">message</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span><span class="s1">&#39;warning&#39;</span><span class="p">)</span>
+                 <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">yview</span><span class="p">(</span><span class="n">END</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">filtered_msg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;M&quot;</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span>
+                <span class="n">groupname</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">current_group</span>
+                <span class="n">username</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name_widget</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+                <span class="n">privatequery</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">                    Select key from </span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="s1"> where GroupName = </span>
+<span class="s1">                    </span><span class="se">\&#39;</span><span class="si">{</span><span class="n">groupname</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1"></span>
+<span class="s1">                    &#39;&#39;&#39;</span>
+                <span class="n">message</span> <span class="o">=</span> <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">groupname</span><span class="p">)</span>
+                <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">privatequery</span><span class="p">)</span>
+                
+                <span class="n">key</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                <span class="c1"># print(key)</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="s2">&quot;b&#39;&quot;</span> <span class="o">+</span> <span class="n">key</span> <span class="o">+</span> <span class="s2">&quot;&#39;&quot;</span><span class="p">)</span>
+                <span class="c1"># print(key)</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="n">Fernet</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+                <span class="n">message</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">decrypt</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+                <span class="c1">#self.chat_transcript_area.tag_config(&#39;warning&#39;, foreground=&quot;green&quot;)</span>
+                <span class="c1"># Now do the same for message (as we received username, we received whole message, there&#39;s no need to check if it has any length)</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">,</span><span class="n">msg</span><span class="p">[</span><span class="s1">&#39;user&#39;</span><span class="p">]</span> <span class="o">+</span><span class="s2">&quot;: &quot;</span><span class="o">+</span><span class="n">message</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">yview</span><span class="p">(</span><span class="n">END</span><span class="p">)</span>
+                
+                <span class="n">mesg</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s1">&#39;user&#39;</span><span class="p">:</span> <span class="n">username</span><span class="p">,</span> <span class="s1">&#39;group_name&#39;</span> <span class="p">:</span> <span class="n">groupname</span> <span class="p">,</span> <span class="s1">&#39;counter&#39;</span> <span class="p">:</span> <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;counter&#39;</span><span class="p">]})</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+                <span class="n">message_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mesg</span><span class="p">)</span>
+                <span class="n">acknowledgement</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;V</span><span class="si">{</span><span class="n">message_len</span><span class="si">:</span><span class="s2">&lt;</span><span class="si">{</span><span class="n">HEADER_LENGTH</span><span class="si">}}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+                                <span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">mesg</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">acknowledgement</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;closed!&#39;</span><span class="p">)</span>
+        <span class="n">so</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+    <span class="c1">#Requests</span>
+    <span class="c1">#1. a - authenticate</span>
+    <span class="c1">#2. b - recieve all users</span>
+
+<div class="viewcode-block" id="GUI.display_name_section"><a class="viewcode-back" href="../client.html#client.GUI.display_name_section">[docs]</a>    <span class="k">def</span> <span class="nf">display_name_section</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This displays the section with username, password, create and join group inside the main GUI</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">frame</span> <span class="o">=</span> <span class="n">Frame</span><span class="p">()</span>
+        <span class="n">frame</span><span class="o">.</span><span class="n">pack</span><span class="p">()</span>
+
+        <span class="c1">#username</span>
+        <span class="n">Label</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Username:&#39;</span><span class="p">,</span> <span class="n">font</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;arial&quot;</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span><span class="s2">&quot;bold&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">padx</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span><span class="n">pady</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name_widget</span> <span class="o">=</span> <span class="n">Entry</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span><span class="n">font</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;arial&quot;</span><span class="p">,</span> <span class="mi">13</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name_widget</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">column</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">padx</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span><span class="n">pady</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        
+        <span class="c1">#password</span>
+        <span class="n">Label</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Password:&#39;</span><span class="p">,</span> <span class="n">font</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;arial&quot;</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span><span class="s2">&quot;bold&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">padx</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span><span class="n">pady</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pass_widget</span> <span class="o">=</span> <span class="n">Entry</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="s2">&quot;*&quot;</span> <span class="p">,</span><span class="n">width</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span><span class="n">font</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;arial&quot;</span><span class="p">,</span> <span class="mi">13</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pass_widget</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">column</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">padx</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span><span class="n">pady</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">join_button</span> <span class="o">=</span> <span class="n">Button</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s2">&quot;Join&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_join</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">join_button</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">column</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span><span class="n">padx</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">sign_up_button</span> <span class="o">=</span> <span class="n">Button</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s2">&quot;Sign Up&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">on_signup</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sign_up_button</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">column</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span><span class="n">padx</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_group_button</span> <span class="o">=</span> <span class="n">Button</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s2">&quot;Create/Amend Group&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">display_create_group_window</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s1">&#39;disabled&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_group_button</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span><span class="n">column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">padx</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">join_group_button</span> <span class="o">=</span> <span class="n">Button</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s2">&quot;Join Group&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">display_join_group_window</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s1">&#39;disabled&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">join_group_button</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span><span class="n">column</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span><span class="n">padx</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GUI.display_chat_box"><a class="viewcode-back" href="../client.html#client.GUI.display_chat_box">[docs]</a>    <span class="k">def</span> <span class="nf">display_chat_box</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This displays the chatbox in the GUI</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">frame</span> <span class="o">=</span> <span class="n">Frame</span><span class="p">()</span>
+        <span class="n">Label</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Chat Box&#39;</span><span class="p">,</span> <span class="n">font</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;arial&quot;</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span><span class="s2">&quot;bold&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">padx</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span> <span class="o">=</span> <span class="n">Text</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">font</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;arial&quot;</span><span class="p">,</span> <span class="mi">12</span><span class="p">))</span>
+        <span class="n">scrollbar</span> <span class="o">=</span> <span class="n">Scrollbar</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">yview</span><span class="p">,</span> <span class="n">orient</span><span class="o">=</span><span class="n">VERTICAL</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">yscrollcommand</span><span class="o">=</span><span class="n">scrollbar</span><span class="o">.</span><span class="n">set</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s1">&#39;&lt;KeyPress&gt;&#39;</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">e</span><span class="p">:</span> <span class="s1">&#39;break&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">padx</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">pady</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="n">scrollbar</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span> <span class="o">=</span><span class="mi">1</span> <span class="p">,</span><span class="n">column</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">columnspan</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
+
+        <span class="n">Label</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Enter Your Message Here!&#39;</span><span class="p">,</span> <span class="n">font</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;arial&quot;</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span><span class="s2">&quot;bold&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span> <span class="o">=</span><span class="mi">2</span> <span class="p">,</span> <span class="n">column</span><span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">padx</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enter_text_widget</span> <span class="o">=</span> <span class="n">Text</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span><span class="n">height</span><span class="o">=</span><span class="mi">2</span> <span class="p">,</span><span class="n">font</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;arial&quot;</span><span class="p">,</span> <span class="mi">12</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enter_text_widget</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">state</span><span class="o">=</span><span class="s1">&#39;disabled&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enter_text_widget</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span> <span class="o">=</span><span class="mi">3</span> <span class="p">,</span> <span class="n">column</span><span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">pady</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">padx</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enter_text_widget</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s1">&#39;&lt;Return&gt;&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">on_enter_key_pressed</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">select_image_button</span> <span class="o">=</span> <span class="n">Button</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s2">&quot;Send Image&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">send_image</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s1">&#39;disabled&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">select_image_button</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span> <span class="o">=</span><span class="mi">3</span> <span class="p">,</span> <span class="n">column</span> <span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">padx</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="n">frame</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">side</span><span class="o">=</span><span class="s1">&#39;top&#39;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="GUI.send_image"><a class="viewcode-back" href="../client.html#client.GUI.send_image">[docs]</a>    <span class="k">def</span> <span class="nf">send_image</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">askopenfilename</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span>
+        <span class="n">send</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;&quot;</span>
+        <span class="n">data1</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="k">while</span> <span class="n">data1</span> <span class="p">:</span> 
+            <span class="n">send</span> <span class="o">+=</span> <span class="n">data1</span>
+            <span class="n">data1</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1024</span><span class="p">)</span>
+            
+        <span class="n">img_header</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;I</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">send</span><span class="p">)</span><span class="si">:</span><span class="s2">&lt;</span><span class="si">{</span><span class="n">HEADER_LENGTH</span><span class="si">}}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">img_header</span> <span class="o">+</span> <span class="n">send</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">round_robin_load_switcher</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="GUI.display_create_group_window"><a class="viewcode-back" href="../client.html#client.GUI.display_create_group_window">[docs]</a>    <span class="k">def</span> <span class="nf">display_create_group_window</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This is the popup window that opens upon pressing the Creata/Amend Group button</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        
+        <span class="n">top</span><span class="o">=</span> <span class="n">Toplevel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">)</span>
+        <span class="n">top</span><span class="o">.</span><span class="n">resizable</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">top</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Create/Amend a Group&quot;</span><span class="p">)</span>
+
+        
+        <span class="c1"># print(users)</span>
+        
+        
+        <span class="n">frame</span> <span class="o">=</span> <span class="n">Frame</span><span class="p">(</span><span class="n">top</span><span class="p">)</span>
+        <span class="n">frame</span><span class="o">.</span><span class="n">pack</span><span class="p">()</span>
+        
+        <span class="n">Label</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Group Name:&#39;</span><span class="p">,</span> <span class="n">font</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;arial&quot;</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span><span class="s2">&quot;bold&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">padx</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span><span class="n">pady</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">group_name_widget</span> <span class="o">=</span> <span class="n">Entry</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span><span class="n">font</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;arial&quot;</span><span class="p">,</span> <span class="mi">13</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">group_name_widget</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">column</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">padx</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span><span class="n">pady</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        
+        <span class="c1">#password</span>
+        <span class="n">Label</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Add Members(enter CSV):&#39;</span><span class="p">,</span> <span class="n">font</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;arial&quot;</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span><span class="s2">&quot;bold&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">padx</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span><span class="n">pady</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_members_widget</span> <span class="o">=</span> <span class="n">Entry</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span><span class="n">font</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;arial&quot;</span><span class="p">,</span> <span class="mi">13</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_members_widget</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">column</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">padx</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span><span class="n">pady</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        
+
+        <span class="n">Label</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Remove Members(enter CSV):&#39;</span><span class="p">,</span> <span class="n">font</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;arial&quot;</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span><span class="s2">&quot;bold&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span><span class="n">column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">padx</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span><span class="n">pady</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remove_members_widget</span> <span class="o">=</span> <span class="n">Entry</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span><span class="n">font</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;arial&quot;</span><span class="p">,</span> <span class="mi">13</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remove_members_widget</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span><span class="n">column</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">padx</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span><span class="n">pady</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+
+        <span class="n">Button</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span><span class="n">width</span><span class="o">=</span><span class="mi">20</span> <span class="p">,</span><span class="n">text</span><span class="o">=</span><span class="s1">&#39;Create/Amend Group&#39;</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="p">(</span><span class="k">lambda</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_group_request</span><span class="p">(</span><span class="n">top</span><span class="p">)))</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span> <span class="mi">3</span><span class="p">,</span><span class="n">column</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
+       
+      
+        <span class="k">return</span></div>
+    
+<div class="viewcode-block" id="GUI.create_group_request"><a class="viewcode-back" href="../client.html#client.GUI.create_group_request">[docs]</a>    <span class="k">def</span> <span class="nf">create_group_request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">top</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This sends a request to the server to create/amend a group and add members to it</span>
+<span class="sd">        :param top: This is the popup window</span>
+<span class="sd">        :type top: TopLevel</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">add_members_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_members_widget</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+        <span class="n">remove_members_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_members_widget</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+        
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">add_members_list</span><span class="p">)):</span>
+            <span class="n">add_members_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">add_members_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">remove_members_list</span><span class="p">)):</span>
+            <span class="n">remove_members_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">remove_members_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="n">grp_head</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">&quot;members_to_add&quot;</span> <span class="p">:</span> <span class="n">add_members_list</span><span class="p">,</span><span class="s2">&quot;members_to_remove&quot;</span> <span class="p">:</span> <span class="n">remove_members_list</span> <span class="p">,</span><span class="s2">&quot;groupname&quot;</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_name_widget</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()})</span>
+
+        <span class="n">request</span> <span class="o">=</span> <span class="p">(</span><span class="n">grp_head</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+        <span class="n">header</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;R</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">request</span><span class="p">)</span><span class="si">:</span><span class="s2">&lt;</span><span class="si">{</span><span class="n">HEADER_LENGTH</span><span class="si">}}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">header</span> <span class="o">+</span> <span class="n">request</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">round_robin_load_switcher</span><span class="p">()</span>
+        <span class="n">top</span><span class="o">.</span><span class="n">destroy</span><span class="p">()</span></div>
+
+
+
+        <span class="c1"># Label(top, text= &quot;Hello World!&quot;, font=(&#39;Mistral 18 bold&#39;)).place(x=150,y=80)</span>
+<div class="viewcode-block" id="GUI.display_join_group_window"><a class="viewcode-back" href="../client.html#client.GUI.display_join_group_window">[docs]</a>    <span class="k">def</span> <span class="nf">display_join_group_window</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This is the popup window that opens upon clicking Join Group button</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">top</span><span class="o">=</span> <span class="n">Toplevel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">)</span>
+        <span class="n">top</span><span class="o">.</span><span class="n">resizable</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">top</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Join a Group&quot;</span><span class="p">)</span>
+       
+        
+        <span class="n">frame</span> <span class="o">=</span> <span class="n">Frame</span><span class="p">(</span><span class="n">top</span><span class="p">)</span>
+        <span class="n">frame</span><span class="o">.</span><span class="n">pack</span><span class="p">()</span>
+   
+        <span class="n">Label</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Group Name:&#39;</span><span class="p">,</span> <span class="n">font</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;arial&quot;</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span><span class="s2">&quot;bold&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">padx</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span><span class="n">pady</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">join_group_name_widget</span> <span class="o">=</span> <span class="n">Entry</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span><span class="n">font</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;arial&quot;</span><span class="p">,</span> <span class="mi">13</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">join_group_name_widget</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">column</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">padx</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span><span class="n">pady</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+     
+        <span class="n">Button</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Join Group&#39;</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="p">(</span><span class="k">lambda</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">join_group</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">join_group_name_widget</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span><span class="n">top</span><span class="p">)))</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span> <span class="mi">2</span><span class="p">,</span><span class="n">column</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>  </div>
+
+    
+<div class="viewcode-block" id="GUI.join_group"><a class="viewcode-back" href="../client.html#client.GUI.join_group">[docs]</a>    <span class="k">def</span> <span class="nf">join_group</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">grpname</span><span class="p">,</span><span class="n">top</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This sends a request to the server when a client wants to join a group</span>
+<span class="sd">        :param grpname: This is the group name</span>
+<span class="sd">        :type top: string</span>
+<span class="sd">        :param top: This is the popup window</span>
+<span class="sd">        :type top: TopLevel</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">request</span> <span class="o">=</span> <span class="p">(</span><span class="n">grpname</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+        <span class="n">header</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;J</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">request</span><span class="p">)</span><span class="si">:</span><span class="s2">&lt;</span><span class="si">{</span><span class="n">HEADER_LENGTH</span><span class="si">}}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">header</span> <span class="o">+</span> <span class="n">request</span><span class="p">)</span>       
+        <span class="n">top</span><span class="o">.</span><span class="n">destroy</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">join_group_button</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;Change Group&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">select_image_button</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">state</span> <span class="o">=</span> <span class="s1">&#39;normal&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">round_robin_load_switcher</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="GUI.round_robin_load_switcher"><a class="viewcode-back" href="../client.html#client.GUI.round_robin_load_switcher">[docs]</a>    <span class="k">def</span> <span class="nf">round_robin_load_switcher</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_index</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_index</span> <span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">%</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ports</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client_sockets</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">current_index</span><span class="p">]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_index</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="p">)</span></div>
+        <span class="c1"># self.initialize_socket(self.current_port)</span>
+        <span class="c1"># self.listen_for_incoming_messages_in_a_thread()</span>
+
+<div class="viewcode-block" id="GUI.on_signup"><a class="viewcode-back" href="../client.html#client.GUI.on_signup">[docs]</a>    <span class="k">def</span> <span class="nf">on_signup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This handles the signup request to the server</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name_widget</span><span class="o">.</span><span class="n">get</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pass_widget</span><span class="o">.</span><span class="n">get</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">messagebox</span><span class="o">.</span><span class="n">showerror</span><span class="p">(</span>
+                <span class="s2">&quot;Invalid username/password&quot;</span><span class="p">,</span> <span class="s2">&quot;The username/password field cannot be blank!&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_registered</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initialize_socket</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_port</span><span class="p">)</span>
+            
+     
+            <span class="n">username</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name_widget</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+            <span class="n">password</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pass_widget</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+            
+
+            <span class="n">salt</span> <span class="o">=</span> <span class="n">bcrypt</span><span class="o">.</span><span class="n">gensalt</span><span class="p">()</span>
+            <span class="n">pwdhash</span> <span class="o">=</span> <span class="n">bcrypt</span><span class="o">.</span><span class="n">hashpw</span><span class="p">(</span><span class="n">password</span><span class="p">,</span><span class="n">salt</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;before rsa&quot;</span><span class="p">)</span>
+            <span class="n">public_key</span><span class="p">,</span> <span class="n">private_key</span><span class="p">,</span> <span class="n">insertmsgquery</span> <span class="o">=</span> <span class="n">enter_my_key</span><span class="p">(</span><span class="n">username</span><span class="p">,</span><span class="n">cursor</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;after rsa&quot;</span><span class="p">)</span>
+            <span class="n">userdetails</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s1">&#39;token&#39;</span> <span class="p">:</span> <span class="s1">&#39;register&#39;</span><span class="p">,</span><span class="s1">&#39;user&#39;</span> <span class="p">:</span> <span class="n">username</span><span class="p">,</span> <span class="s1">&#39;pass&#39;</span> <span class="p">:</span> <span class="n">pwdhash</span><span class="p">,</span> <span class="s1">&#39;public_key&#39;</span><span class="p">:</span> <span class="n">public_key</span> <span class="p">})</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+            <span class="n">header</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;S</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">userdetails</span><span class="p">)</span><span class="si">:</span><span class="s2">&lt;</span><span class="si">{</span><span class="n">HEADER_LENGTH</span><span class="si">}}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">header</span> <span class="o">+</span> <span class="n">userdetails</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">userdetails</span><span class="p">))</span>
+            <span class="n">code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">code</span> <span class="o">==</span> <span class="s1">&#39;err_2&#39;</span><span class="p">:</span>
+                <span class="n">messagebox</span><span class="o">.</span><span class="n">showerror</span><span class="p">(</span>
+                <span class="s2">&quot;Invalid username/password&quot;</span><span class="p">,</span> <span class="s2">&quot;The user already exists!&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">messagebox</span><span class="o">.</span><span class="n">showinfo</span><span class="p">(</span>
+                <span class="s2">&quot;Success!&quot;</span><span class="p">,</span> <span class="s2">&quot;You have successfully registered!&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">has_registered</span> <span class="o">=</span> <span class="kc">True</span>
+            
+            <span class="n">user_table</span><span class="p">(</span><span class="n">username</span><span class="p">)</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">insertmsgquery</span><span class="p">,</span> <span class="p">(</span><span class="n">public_key</span><span class="p">,</span> <span class="n">private_key</span><span class="p">))</span></div>
+                
+        
+    
+<div class="viewcode-block" id="GUI.on_join"><a class="viewcode-back" href="../client.html#client.GUI.on_join">[docs]</a>    <span class="k">def</span> <span class="nf">on_join</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This handles the join request to the server</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+      
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name_widget</span><span class="o">.</span><span class="n">get</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pass_widget</span><span class="o">.</span><span class="n">get</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">messagebox</span><span class="o">.</span><span class="n">showerror</span><span class="p">(</span>
+                <span class="s2">&quot;Invalid username/password&quot;</span><span class="p">,</span> <span class="s2">&quot;The username/password field cannot be blank!&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_joined</span><span class="p">:</span>
+            <span class="c1"># self.initialize_socket(self.current_port)</span>
+            
+            
+            
+            <span class="n">username</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name_widget</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+            <span class="n">password</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pass_widget</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+
+       
+            
+            <span class="n">userdetails</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s1">&#39;token&#39;</span> <span class="p">:</span> <span class="s1">&#39;join&#39;</span><span class="p">,</span><span class="s1">&#39;user&#39;</span> <span class="p">:</span> <span class="n">username</span><span class="p">,</span> <span class="s1">&#39;pass&#39;</span> <span class="p">:</span> <span class="n">password</span><span class="p">})</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+            <span class="n">header</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;A</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">userdetails</span><span class="p">)</span><span class="si">:</span><span class="s2">&lt;</span><span class="si">{</span><span class="n">HEADER_LENGTH</span><span class="si">}}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;here&quot;</span><span class="p">)</span>
+            <span class="c1"># self.current_client_socket.send(header + userdetails)</span>
+            <span class="c1"># code = self.current_client_socket.recv(10).decode(&#39;utf-8&#39;)</span>
+            <span class="c1"># print(code)</span>
+            <span class="k">for</span> <span class="n">port</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ports</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;here&quot;</span><span class="p">)</span>
+                <span class="c1"># print(cs)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">initialize_socket</span><span class="p">(</span><span class="n">port</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">header</span> <span class="o">+</span> <span class="n">userdetails</span><span class="p">)</span>
+                <span class="n">code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">client_sockets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="p">)</span>
+
+            
+            <span class="k">if</span> <span class="n">code</span> <span class="o">==</span> <span class="s1">&#39;err_1&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">client_sockets</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">messagebox</span><span class="o">.</span><span class="n">showerror</span><span class="p">(</span>
+                <span class="s2">&quot;Invalid username/password&quot;</span><span class="p">,</span> <span class="s2">&quot;If The username is not registered, try using the Sign In button!&quot;</span><span class="p">)</span>
+                <span class="k">return</span>
+            <span class="c1">##get validation message</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">yview</span><span class="p">(</span><span class="n">END</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">has_joined</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">name_widget</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">state</span><span class="o">=</span><span class="s1">&#39;disabled&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pass_widget</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">state</span><span class="o">=</span><span class="s1">&#39;disabled&#39;</span><span class="p">)</span>
+
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">create_group_button</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">state</span> <span class="o">=</span> <span class="s1">&#39;normal&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">join_group_button</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">state</span> <span class="o">=</span> <span class="s1">&#39;normal&#39;</span><span class="p">)</span> 
+
+            <span class="k">for</span> <span class="n">cs</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">client_sockets</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span> <span class="o">=</span> <span class="n">cs</span>                
+                <span class="bp">self</span><span class="o">.</span><span class="n">listen_for_incoming_messages_in_a_thread</span><span class="p">()</span>
+           
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client_sockets</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">current_index</span><span class="p">]</span></div>
+            
+
+<div class="viewcode-block" id="GUI.on_enter_key_pressed"><a class="viewcode-back" href="../client.html#client.GUI.on_enter_key_pressed">[docs]</a>    <span class="k">def</span> <span class="nf">on_enter_key_pressed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name_widget</span><span class="o">.</span><span class="n">get</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">messagebox</span><span class="o">.</span><span class="n">showerror</span><span class="p">(</span><span class="s2">&quot;Enter your name&quot;</span><span class="p">,</span> <span class="s2">&quot;Enter your name to send a message&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">send_chat</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clear_text</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="GUI.clear_text"><a class="viewcode-back" href="../client.html#client.GUI.clear_text">[docs]</a>    <span class="k">def</span> <span class="nf">clear_text</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enter_text_widget</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;end&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GUI.send_chat"><a class="viewcode-back" href="../client.html#client.GUI.send_chat">[docs]</a>    <span class="k">def</span> <span class="nf">send_chat</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This sends the message to the server</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">username</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name_widget</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">+</span><span class="s2">&quot;: &quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enter_text_widget</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;end&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">data</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">,</span> <span class="n">username</span><span class="o">+</span><span class="n">message</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">yview</span><span class="p">(</span><span class="n">END</span><span class="p">)</span>
+
+            <span class="n">fernetkeyquery</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">            Select key from </span><span class="si">{</span><span class="n">username</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="si">}</span><span class="s1"> where GroupName = </span><span class="se">\&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current_group</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1"></span>
+<span class="s1">            &#39;&#39;&#39;</span>
+            <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_group</span><span class="p">)</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">fernetkeyquery</span><span class="p">)</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Send!! : &quot;</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="s2">&quot;b&#39;&quot;</span> <span class="o">+</span> <span class="n">key</span> <span class="o">+</span> <span class="s2">&quot;&#39;&quot;</span><span class="p">)</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="n">Fernet</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">encrypt</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+            <span class="n">message_header</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;M</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">message</span><span class="p">)</span><span class="si">:</span><span class="s2">&lt;</span><span class="si">{</span><span class="n">HEADER_LENGTH</span><span class="si">}}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">message_header</span> <span class="o">+</span> <span class="n">message</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">enter_text_widget</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;end&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">round_robin_load_switcher</span><span class="p">()</span>
+        <span class="k">return</span> <span class="s1">&#39;break&#39;</span></div>
+
+<div class="viewcode-block" id="GUI.on_close_window"><a class="viewcode-back" href="../client.html#client.GUI.on_close_window">[docs]</a>    <span class="k">def</span> <span class="nf">on_close_window</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This handles exiting the GUI</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">messagebox</span><span class="o">.</span><span class="n">askokcancel</span><span class="p">(</span><span class="s2">&quot;Quit&quot;</span><span class="p">,</span> <span class="s2">&quot;Do you want to quit?&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">destroy</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div></div>
+
+<span class="c1">#the mail function </span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="c1"># proxy = xmlrpc.client.ServerProxy(&quot;http://localhost:8080/&quot;)</span>
+    <span class="n">ports</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1234</span><span class="p">]</span>
+    <span class="n">root</span> <span class="o">=</span> <span class="n">Tk</span><span class="p">()</span>
+    <span class="n">gui</span> <span class="o">=</span> <span class="n">GUI</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">ports</span><span class="p">)</span>
+    <span class="n">root</span><span class="o">.</span><span class="n">protocol</span><span class="p">(</span><span class="s2">&quot;WM_DELETE_WINDOW&quot;</span><span class="p">,</span> <span class="n">gui</span><span class="o">.</span><span class="n">on_close_window</span><span class="p">)</span>
+    <span class="n">root</span><span class="o">.</span><span class="n">mainloop</span><span class="p">()</span>
+    <span class="c1"># proxy.kill()p.</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">FastChat</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">Documentation</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2022, chmod+x.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
