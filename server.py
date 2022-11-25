@@ -5,9 +5,13 @@ import threading
 import json
 import re
 import sys
+import psutil
+from load_balancer import cpuutil_load_balancer
 # from xmlrpc.server import SimpleXMLRPCServer
 
 from groups import *
+
+current_process = psutil.Process()
 
 
 HEADER_LENGTH = 10
@@ -64,6 +68,7 @@ def send_message_in_packets(client_socket,message,header ,length):
     if length > 0:
         client_socket.send(message)
     print('SEND SUCESSFULL')
+    
     return
 
 # Handles message receiving
@@ -79,23 +84,23 @@ def receive_message(client_socket):
             return False
 
         filtered_msg = message_header.decode('utf-8').strip()
-        print(filtered_msg)
+        # print(filtered_msg)
         # Convert header to int value
         message_length = int(filtered_msg[1:])
         message = "".encode('utf-8')
-        print('here1')
+        # print('here1')
         while message_length > LARGEST_PACKET_LENGTH:
-            print('here2')
+            # print('here2')
             message += client_socket.recv(LARGEST_PACKET_LENGTH)
             message_length -= LARGEST_PACKET_LENGTH
 
         if message_length > 0:
-            print('here3',message_length)
+            # print('here3',message_length)
             msg = client_socket.recv(message_length)
-            print(msg)
+            # print(msg)
             message += msg
 
-        print(message)
+        # print(message)
         # Return an object of message header and message data
         return {'header': message_header, 'data': message}
 
@@ -108,8 +113,20 @@ def receive_message(client_socket):
         return False
 
 
-while True:
 
+
+
+def log_cpu_util():
+    while True:
+        cpuutil_load_balancer.update_port_index(current_process.cpu_percent(1),PORT)
+
+
+
+perf_thread = threading.Thread(target=log_cpu_util, )
+perf_thread.start()
+
+while True:
+   
     # Calls Unix select() system call or Windows select() WinSock call with three parameters:
     #   - rlist - sockets to be monitored for incoming data
     #   - wlist - sockets for data to be send to (checks if for example buffers are not full and socket is ready to send some data)
@@ -142,10 +159,9 @@ while True:
 
             userdetails = json.loads(userpass['data'])
 
-            print(userdetails)
             # err_1 validation failed
             if userdetails['token'] == 'join':
-                print('join request')
+          
                 if not validate(userdetails['user'], userdetails['pass'], cursor):
                     client_socket.send("err_1".encode('utf-8'))
                     continue
@@ -153,7 +169,7 @@ while True:
                     client_socket.send("suc_0".encode('utf-8'))
 
             elif userdetails['token'] == 'register':
-                print('register request')
+
                 if check_user_name(userdetails['user'], cursor):
                     client_socket.send("err_2".encode('utf-8'))
                 else:
@@ -178,7 +194,7 @@ while True:
             # Receive message
             message = receive_message(notified_socket)
             
-            print(message)
+            # print(message)
             # If False, client disconnected, cleanup
             if message is False:
                 print('Closed connection from: {}'.format(
@@ -200,7 +216,7 @@ while True:
 
                 users_list_add = details['members_to_add']
                 users_list_remove = details['members_to_remove']
-                print(users_list_add, users_list_remove)
+                
                 users_lst_add = []
                 users_lst_remove = []
                 for i in users_list_add:
@@ -225,7 +241,7 @@ while True:
                     rows = cursor.fetchall()[0]
                     row = rows[0]
                     mydict[i] = row
-                print(mydict)
+                # print(mydict)
 
                 # Assuming no person called groupname
                 mydict["groupname"] = group_name
@@ -233,11 +249,11 @@ while True:
                 send_public_keys = json.dumps(mydict)    
                 for i in clients : 
                     if clients[i].userdetails== username:
-                        print(username)
+                        # print(username)
                         message_to_send= send_public_keys.encode('utf-8')
                         message_len = len(message_to_send)   
                         message_=f"L{message_len:<{HEADER_LENGTH}}".encode('utf-8')+message_to_send
-                        print(message_)
+                        # print(message_)
                         i.send(message_)
                         break
 
@@ -261,7 +277,7 @@ while True:
 
             elif message['header'].decode('utf-8')[0] == 'J':
                 group_name = message['data'].decode('utf-8')
-                print(username, group_name)
+                # print(username, group_name)
                 if not check_group(group_name,username,cursor):
                     msg = 'err_0'.encode('utf-8')
                     header = f"E{len(msg):<{HEADER_LENGTH}}".encode('utf-8') 
@@ -283,7 +299,6 @@ while True:
                         message_1 = f"J{join_message_len_1:<{HEADER_LENGTH}}".encode(
                             'utf-8') + join_message_to_others
 
-                        # print(join_message_to_others.decode('utf-8'))
                         join_message_to_new_user = (
                             other_user + " has joined!").encode('utf-8')
                         join_message_len_2 = len(join_message_to_new_user)
@@ -296,7 +311,7 @@ while True:
                         
                 key = get_encoded_key(username, group_name,cursor)
                 message_to_send = json.dumps({"fernet_key" : key, "groupname" : group_name}).encode('utf-8')
-                print({"fernet_key" : key, "groupname" : group_name})
+                # print({"fernet_key" : key, "groupname" : group_name})
                 message_len = len(message_to_send)
                 message_ = f"Z{message_len:<{HEADER_LENGTH}}".encode('utf-8') + message_to_send
                 notified_socket.send(message_)
@@ -305,7 +320,7 @@ while True:
                 messages = pendingmsg(username, group_name, cursor)
 
                 if messages is not None:
-                    # print(messages)
+                
                     for usr, msg in messages:
                         counter =  get_message_counter(usr,group_name,msg,cursor)
                         message_to_send = json.dumps({'message': msg, 'user': usr, 'counter' : counter}).encode('utf-8')
@@ -318,13 +333,13 @@ while True:
                 # Get user by notified socket, so we will know who sent the message
                 # user = clients[notified_socket]
 
-                # print(userdetails['user'])
+                
                 group_name = get_current_group(clients[notified_socket].userdetails,cursor)
                 counter = None
                 if (message['header'].decode('utf-8')[0] == 'M') :
                     sendmsg(username, group_name , cursor,
                         message["data"].decode("utf-8"))
-                    print(f'Received message from {username}: {message["data"].decode("utf-8")} in group{group_name}')
+                    print(f'Received message from {username} in group{group_name}')
 
                     counter = get_message_counter(username,group_name,message["data"].decode("utf-8"),cursor)
                 # Iterate over connected clients and broadcast message
@@ -356,9 +371,8 @@ while True:
             elif message['header'].decode('utf-8')[0] == 'Q':
                     # Get user by notified socket, so we will know who sent the message
                 # user = clients[notified_socket]
-                print("Reached below Q")
-                # print(userdetails[1])
-                #group_name = clients[notified_socket].current_group
+                
+             
                 y=(json.loads(message["data"].decode("utf-8")))
                 group_name=y["groupname"]
 
@@ -367,13 +381,13 @@ while True:
                     x=y[i]
                     x = x.replace("'","''")
                     x = x.replace("\\","\\\\")
-                    print(y[i])
+                 
                     set_private_key(i, group_name, x,cursor)
             elif message['header'].decode('utf-8')[0] == 'V':
                  mesg = json.loads(message["data"].decode("utf-8"))
                  update_client_counter(mesg['user'],mesg['group_name'],mesg['counter'],cursor)
             elif message['header'].decode('utf-8')[0] == 'C':
-                 print("exit")
+           
                  
                  message_to_send = "Yes".encode('utf-8')
                  message_len = len(message_to_send)

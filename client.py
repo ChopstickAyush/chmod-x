@@ -12,6 +12,7 @@ import bcrypt
 import psycopg2
 import base64 
 from myrsa import *
+from load_balancer import cpuutil_load_balancer
 
 HEADER_LENGTH = 10
 LARGEST_PACKET_LENGTH = 1024
@@ -478,7 +479,8 @@ class GUI:
 
     def round_robin_load_switcher(self):
         print(self.current_index)
-        self.current_index = (self.current_index +1)%(len(self.ports))
+        self.current_index = cpuutil_load_balancer.get_port_from_table()  
+        print(self.current_index)
         self.current_client_socket= self.client_sockets[self.current_index]
         print(self.current_index)
         print(self.current_client_socket)
@@ -644,7 +646,7 @@ class GUI:
 #the mail function 
 if __name__ == '__main__':
     # proxy = xmlrpc.client.ServerProxy("http://localhost:8080/")
-    ports = [1234]
+    ports = [1234,1235]
     root = Tk()
     gui = GUI(root, ports)
     root.protocol("WM_DELETE_WINDOW", gui.on_close_window)
