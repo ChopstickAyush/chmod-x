@@ -17,7 +17,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="groups module" href="groups.html" />
-    <link rel="prev" title="Documentation" href="modules.html" />
+    <link rel="prev" title="chmod-x" href="modules.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -115,11 +115,15 @@
 <dl class="py method">
 <dt class="sig sig-object py" id="client.GUI.join_group">
 <span class="sig-name descname"><span class="pre">join_group</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grpname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/client.html#GUI.join_group"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#client.GUI.join_group" title="Permalink to this definition">¶</a></dt>
-<dd><p>This sends a request to the server when a client wants to join a group
-:param grpname: This is the group name
-:type top: string
-:param top: This is the popup window
-:type top: TopLevel</p>
+<dd><p>This sends a request to the server when a client wants to join a group</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>grpname</strong> – This is the group name</p></li>
+<li><p><strong>top</strong> (<em>TopLevel</em>) – This is the popup window</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -132,6 +136,11 @@
 <span class="sig-name descname"><span class="pre">listen_for_incoming_messages_in_a_thread</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/client.html#GUI.listen_for_incoming_messages_in_a_thread"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#client.GUI.listen_for_incoming_messages_in_a_thread" title="Permalink to this definition">¶</a></dt>
 <dd><p>This runs the function receive_message_from_server in a parallel thread.</p>
 </dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="client.GUI.load_switcher">
+<span class="sig-name descname"><span class="pre">load_switcher</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/client.html#GUI.load_switcher"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#client.GUI.load_switcher" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="client.GUI.on_close_window">
@@ -159,15 +168,13 @@
 <dl class="py method">
 <dt class="sig sig-object py" id="client.GUI.receive_message_from_server">
 <span class="sig-name descname"><span class="pre">receive_message_from_server</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">so</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/client.html#GUI.receive_message_from_server"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#client.GUI.receive_message_from_server" title="Permalink to this definition">¶</a></dt>
-<dd><p>This is used to recieve and handle all kinds of messages/responses from the server
-:param so: This is the client socket object
-:type so: socket</p>
+<dd><p>This is used to recieve and handle all kinds of messages/responses from the server</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>so</strong> (<em>socket</em>) – This is the client socket object</p>
+</dd>
+</dl>
 </dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="client.GUI.round_robin_load_switcher">
-<span class="sig-name descname"><span class="pre">round_robin_load_switcher</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/client.html#GUI.round_robin_load_switcher"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#client.GUI.round_robin_load_switcher" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="client.GUI.send_chat">
@@ -208,9 +215,10 @@
 <h3>Navigation</h3>
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="modules.html">Documentation</a><ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">chmod-x</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">client module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="groups.html">groups module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="load_balancer.html">load_balancer module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="myrsa.html">myrsa module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="server.html">server module</a></li>
 </ul>
@@ -221,8 +229,8 @@
 <h3>Related Topics</h3>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
-  <li><a href="modules.html">Documentation</a><ul>
-      <li>Previous: <a href="modules.html" title="previous chapter">Documentation</a></li>
+  <li><a href="modules.html">chmod-x</a><ul>
+      <li>Previous: <a href="modules.html" title="previous chapter">chmod-x</a></li>
       <li>Next: <a href="groups.html" title="next chapter">groups module</a></li>
   </ul></li>
   </ul></li>

@@ -33,7 +33,7 @@
             
   <h1>Source code for groups</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">codecs</span> <span class="kn">import</span> <span class="n">latin_1_decode</span>
-<span class="c1">#import bcrypt</span>
+<span class="kn">import</span> <span class="nn">bcrypt</span>
 <span class="kn">import</span> <span class="nn">pdb</span>
 <span class="kn">from</span> <span class="nn">re</span> <span class="kn">import</span> <span class="n">L</span>
 <span class="kn">import</span> <span class="nn">psycopg2</span>
@@ -64,7 +64,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">create</span> <span class="o">=</span><span class="s1">&#39;&#39;&#39;</span>
-<span class="s1">       </span>
+<span class="s1">        DROP TABLE IF EXISTS Users cascade; </span>
 <span class="s1">        CREATE TABLE IF NOT EXISTS Users (</span>
 <span class="s1">        Name VARCHAR ( 20 ) PRIMARY KEY,</span>
 <span class="s1">        Password VARCHAR ( 72 ) NOT NULL,</span>
@@ -72,7 +72,7 @@
 <span class="s1">        public_key VARCHAR(20000)</span>
 <span class="s1">        );</span>
 
-<span class="s1">       </span>
+<span class="s1">        DROP TABLE IF EXISTS UserGroupInfo cascade;</span>
 <span class="s1">        CREATE TABLE IF NOT EXISTS UserGroupInfo (</span>
 <span class="s1">        Name VARCHAR ( 20 ),</span>
 <span class="s1">        GroupName VARCHAR ( 20 ),</span>
@@ -85,15 +85,16 @@
 <span class="s1">        REFERENCES Groups (GroupName)</span>
 <span class="s1">        );</span>
 
-<span class="s1">        </span>
+<span class="s1">        DROP TABLE IF EXISTS Messages cascade;</span>
 <span class="s1">        CREATE TABLE IF NOT EXISTS Messages (</span>
 <span class="s1">        GroupName VARCHAR( 20 ), </span>
-<span class="s1">        msg VARCHAR ( 10000 ), </span>
+<span class="s1">        msg VARCHAR ( 1000000 ), </span>
 <span class="s1">        Name VARCHAR ( 20 ),</span>
+<span class="s1">        IsImage BOOLEAN,</span>
 <span class="s1">        Time SERIAL</span>
 <span class="s1">        );</span>
 
-<span class="s1">      </span>
+<span class="s1">        DROP TABLE IF EXISTS Groups cascade;</span>
 <span class="s1">        CREATE TABLE IF NOT EXISTS Groups (</span>
 <span class="s1">        GroupName VARCHAR ( 20 ) PRIMARY KEY,</span>
 <span class="s1">        public_key VARCHAR(1000),</span>
@@ -107,7 +108,7 @@
 
     <span class="k">return</span></div>
 
-<div class="viewcode-block" id="sendmsg"><a class="viewcode-back" href="../groups.html#groups.sendmsg">[docs]</a><span class="k">def</span> <span class="nf">sendmsg</span><span class="p">(</span><span class="n">username</span><span class="p">,</span><span class="n">grpname</span><span class="p">,</span><span class="n">cursor</span><span class="p">,</span><span class="n">message</span><span class="p">):</span>
+<div class="viewcode-block" id="sendmsg"><a class="viewcode-back" href="../groups.html#groups.sendmsg">[docs]</a><span class="k">def</span> <span class="nf">sendmsg</span><span class="p">(</span><span class="n">username</span><span class="p">,</span><span class="n">grpname</span><span class="p">,</span><span class="n">cursor</span><span class="p">,</span><span class="n">message</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span><span class="s2">&quot;M&quot;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Insert query for storing of message at server along with user , group in message table.</span>
 
@@ -120,8 +121,9 @@
 <span class="sd">    :param message: message sent by the user</span>
 <span class="sd">    :type message: string</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">isImage</span> <span class="o">=</span> <span class="p">(</span><span class="nb">type</span> <span class="o">==</span> <span class="s2">&quot;I&quot;</span><span class="p">)</span>
     <span class="n">insertmsgquery</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;</span>
-<span class="s1">    INSERT INTO  Messages(GroupName, msg, Name) VALUES (</span><span class="se">\&#39;</span><span class="si">{</span><span class="n">grpname</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1">,</span><span class="se">\&#39;</span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1">, </span><span class="se">\&#39;</span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1">)&#39;&#39;&#39;</span>
+<span class="s1">    INSERT INTO  Messages(GroupName, msg, Name, IsImage) VALUES (</span><span class="se">\&#39;</span><span class="si">{</span><span class="n">grpname</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1">,</span><span class="se">\&#39;</span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1">, </span><span class="se">\&#39;</span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1">,</span><span class="si">{</span><span class="n">isImage</span><span class="si">}</span><span class="s1">)&#39;&#39;&#39;</span>
     <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">insertmsgquery</span><span class="p">)</span></div>
     
 <div class="viewcode-block" id="get_message_counter"><a class="viewcode-back" href="../groups.html#groups.get_message_counter">[docs]</a><span class="k">def</span> <span class="nf">get_message_counter</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">grpname</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span><span class="n">cursor</span><span class="p">):</span>
@@ -149,12 +151,11 @@
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Select query to get the list of pending message for a given user in a specified group.</span>
 <span class="sd">    </span>
-<span class="sd">    :type grpname : string</span>
+<span class="sd">    :type grpname: string</span>
 <span class="sd">    :param grpname: group for which pending message of given user has to be found</span>
 <span class="sd">    :type username: string</span>
 <span class="sd">    :param username: username for which pending message has to be found</span>
 <span class="sd">    :type cursor: socket.cursor</span>
-<span class="sd">    </span>
 <span class="sd">    :returns rows: list of pending messages</span>
 <span class="sd">    :rtype rows: list of strings</span>
 <span class="sd">    </span>
@@ -175,22 +176,20 @@
     <span class="nb">print</span><span class="p">(</span><span class="n">time</span><span class="p">)</span>
     <span class="c1"># pdb.set_trace()</span>
     <span class="n">getmessagequery</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;</span>
-<span class="s1">    Select Name, msg from Messages where Time &gt; </span><span class="si">{</span><span class="n">time</span><span class="si">}</span><span class="s1"> AND GroupName = </span><span class="se">\&#39;</span><span class="si">{</span><span class="n">grpname</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1"></span>
+<span class="s1">    Select Name, msg, IsImage from Messages where Time &gt; </span><span class="si">{</span><span class="n">time</span><span class="si">}</span><span class="s1"> AND GroupName = </span><span class="se">\&#39;</span><span class="si">{</span><span class="n">grpname</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1"></span>
 <span class="s1">    &#39;&#39;&#39;</span>
     <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">getmessagequery</span><span class="p">)</span>
     <span class="n">rows</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
 
-    <span class="c1"># Update the last seen message </span>
-    <span class="c1"># curtimequery = f&#39;&#39;&#39;Select Max(Time) from Messages where GroupName = \&#39;{grpname}\&#39; &#39;&#39;&#39;</span>
-    <span class="c1"># cursor.execute(curtimequery)</span>
-    <span class="c1"># curtime = cursor.fetchone()</span>
 
-    <span class="c1"># if len(curtime) &gt; 0:</span>
-    <span class="c1">#     if  curtime[0] is not None:</span>
-    <span class="c1">#         updatetimequery = f&#39;&#39;&#39;</span>
-    <span class="c1">#         Update UserGroupInfo SET Time = ({curtime[0]}) WHERE Name =\&#39;{username}\&#39; AND GroupName = \&#39;{grpname}\&#39;</span>
-    <span class="c1">#         &#39;&#39;&#39;</span>
-    <span class="c1">#         cursor.execute(updatetimequery)</span>
+    <span class="n">min_time_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;Select Min(Time) From UserGroupInfo WHERE GroupName = </span><span class="se">\&#39;</span><span class="si">{</span><span class="n">grpname</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1"> &#39;&#39;&#39;</span>
+    <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">min_time_query</span><span class="p">)</span>
+    <span class="n">min_time</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="n">min_time</span><span class="p">)</span>
+    <span class="n">delete_msg_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;DELETE From Messages WHERE GroupName = </span><span class="se">\&#39;</span><span class="si">{</span><span class="n">grpname</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1"> AND Time &lt;= </span><span class="si">{</span><span class="n">min_time</span><span class="si">}</span><span class="s1"> &#39;&#39;&#39;</span>
+    <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">delete_msg_query</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">rows</span></div>
 
     
@@ -388,6 +387,8 @@
             <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
             <span class="n">query</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;DELETE FROM Groups WHERE GroupName =</span><span class="se">\&#39;</span><span class="si">{</span><span class="n">grpname</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1"> &#39;&#39;&#39;</span>
             <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+            <span class="n">query</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;DELETE FROM Messages WHERE  GroupName =</span><span class="se">\&#39;</span><span class="si">{</span><span class="n">grpname</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1"> &#39;&#39;&#39;</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
             <span class="k">return</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">query</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;DELETE FROM UserGroupInfo WHERE Name =</span><span class="se">\&#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1"> AND GroupName =</span><span class="se">\&#39;</span><span class="si">{</span><span class="n">grpname</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1"> &#39;&#39;&#39;</span>
@@ -463,7 +464,7 @@
     <span class="n">query</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;UPDATE UserGroupInfo Set Coded_Key = </span><span class="se">\&#39;</span><span class="si">{</span><span class="n">privatekey</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1"> WHERE Name =</span><span class="se">\&#39;</span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1"> AND GroupName=</span><span class="se">\&#39;</span><span class="si">{</span><span class="n">groupname</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1">&#39;&#39;&#39;</span>
     <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">)</span></div>
     
-<div class="viewcode-block" id="set_current_group"><a class="viewcode-back" href="../groups.html#groups.set_current_group">[docs]</a><span class="k">def</span> <span class="nf">set_current_group</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="n">grpname</span><span class="p">,</span><span class="n">cursor</span><span class="p">):</span>
+<div class="viewcode-block" id="set_current_group"><a class="viewcode-back" href="../groups.html#groups.set_current_group">[docs]</a><span class="k">def</span> <span class="nf">set_current_group</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="n">grpname</span><span class="p">,</span><span class="n">cursor</span><span class="p">,</span><span class="n">remove</span><span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Update query to set current group of the user.</span>
 
@@ -473,10 +474,13 @@
 <span class="sd">    :type groupname: string</span>
 <span class="sd">    :param cursor: cursor to execute the query</span>
 <span class="sd">    :type cursor: socket.cursor</span>
+<span class="sd">    :param remove: flag to set the current group of the user to null</span>
+<span class="sd">    :type cursor: socket.cursor</span>
 <span class="sd">    </span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    
     <span class="n">query</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;UPDATE Users Set CurrentGroup = </span><span class="se">\&#39;</span><span class="si">{</span><span class="n">grpname</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1"> WHERE Name =</span><span class="se">\&#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1">&#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="n">remove</span><span class="p">:</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;UPDATE Users Set CurrentGroup = NULL WHERE Name =</span><span class="se">\&#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1">&#39;&#39;&#39;</span>
     <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="get_current_group"><a class="viewcode-back" href="../groups.html#groups.get_current_group">[docs]</a><span class="k">def</span> <span class="nf">get_current_group</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="n">cursor</span><span class="p">):</span>
@@ -501,16 +505,14 @@
 <span class="sd">    Select query to get the enrypted fernet key of the group, the key is coded by </span>
 <span class="sd">    name&#39;s pulic key. </span>
 <span class="sd">    </span>
-<span class="sd">    :type grpname : string</span>
+<span class="sd">    :type grpname: string</span>
 <span class="sd">    :param grpname: groupname for which fernet key has to be fetched</span>
 <span class="sd">    :type name: string</span>
 <span class="sd">    :param name: username whose public key has encrypted the fernet key</span>
 <span class="sd">    :param cursor: cursor to execute the query</span>
 <span class="sd">    :type cursor: socket.cursor</span>
-<span class="sd">    </span>
 <span class="sd">    :returns result: encrypted fernet key</span>
 <span class="sd">    :rtype result: string</span>
-<span class="sd">    </span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">query</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;SELECT Coded_Key From UserGroupInfo WHERE Name =</span><span class="se">\&#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1"> AND GroupName = </span><span class="se">\&#39;</span><span class="si">{</span><span class="n">grpname</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1"> &#39;&#39;&#39;</span>
     <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
@@ -523,7 +525,7 @@
 <span class="sd">    Update query to update the time counter of usergroupinfo table showing that the user have seen</span>
 <span class="sd">    that message.</span>
 <span class="sd">    </span>
-<span class="sd">    :type grpname : string</span>
+<span class="sd">    :type grpname: string</span>
 <span class="sd">    :param grpname: groupname of user</span>
 <span class="sd">    :type username: string</span>
 <span class="sd">    :param username: name of the user</span>
@@ -531,7 +533,7 @@
 <span class="sd">    :type cursor: socket.cursor</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">timequery</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;SELECT Time From UserGroupInfo WHERE Name =</span><span class="se">\&#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1"> AND GroupName = </span><span class="se">\&#39;</span><span class="si">{</span><span class="n">grpname</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1">&#39;&#39;&#39;</span>
+    <span class="n">timequery</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;SELECT Time From Messages WHERE GroupName = </span><span class="se">\&#39;</span><span class="si">{</span><span class="n">grpname</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1">&#39;&#39;&#39;</span>
     <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">timequery</span><span class="p">)</span>
     <span class="n">time</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">max_time</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">time</span><span class="p">,</span><span class="n">counter</span><span class="p">)</span>
@@ -570,7 +572,7 @@
 <h3>Navigation</h3>
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../modules.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">chmod-x</a></li>
 </ul>
 
 <div class="relations">

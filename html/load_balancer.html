@@ -1,0 +1,206 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>load_balancer module &#8212; FastChat 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="myrsa module" href="myrsa.html" />
+    <link rel="prev" title="groups module" href="groups.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-load_balancer">
+<span id="load-balancer-module"></span><h1>load_balancer module<a class="headerlink" href="#module-load_balancer" title="Permalink to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="load_balancer.LoadBalancerCPUUtil">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">load_balancer.</span></span><span class="sig-name descname"><span class="pre">LoadBalancerCPUUtil</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_ports</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ports</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cursor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/load_balancer.html#LoadBalancerCPUUtil"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#load_balancer.LoadBalancerCPUUtil" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>This class is designed for load balancing strategy according to the load at 
+cpu which is monitored according to the memory allocated.
+The least occupied server is given the duty of message.
+The record is maintained in a database.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="load_balancer.LoadBalancerCPUUtil.create_tables">
+<span class="sig-name descname"><span class="pre">create_tables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/load_balancer.html#LoadBalancerCPUUtil.create_tables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#load_balancer.LoadBalancerCPUUtil.create_tables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create Table for holding the cpu’s memory usage.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="load_balancer.LoadBalancerCPUUtil.get_port_from_table">
+<span class="sig-name descname"><span class="pre">get_port_from_table</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/load_balancer.html#LoadBalancerCPUUtil.get_port_from_table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#load_balancer.LoadBalancerCPUUtil.get_port_from_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the next port number by database through Select query selecting minima
+of all.
+:param index: index
+:rtype index: int</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="load_balancer.LoadBalancerCPUUtil.update_port_index">
+<span class="sig-name descname"><span class="pre">update_port_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cpu_util</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/load_balancer.html#LoadBalancerCPUUtil.update_port_index"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#load_balancer.LoadBalancerCPUUtil.update_port_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the port’s memory usage at database</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cpu_util</strong> (<em>int</em>) – CPU’s memory</p></li>
+<li><p><strong>port</strong> (<em>int</em>) – Update the port’s memory at cpu</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="load_balancer.LoadBalancerRoundRobin">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">load_balancer.</span></span><span class="sig-name descname"><span class="pre">LoadBalancerRoundRobin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_ports</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cursor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/load_balancer.html#LoadBalancerRoundRobin"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#load_balancer.LoadBalancerRoundRobin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>This class is designed for load balancing strategy as a round robin at server.
+basically, the next message is allocated to the next server.
+The record is maintained in a database.
+:param</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="load_balancer.LoadBalancerRoundRobin.create_tables">
+<span class="sig-name descname"><span class="pre">create_tables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/load_balancer.html#LoadBalancerRoundRobin.create_tables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#load_balancer.LoadBalancerRoundRobin.create_tables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create Table for holding the turns of roundrobin.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="load_balancer.LoadBalancerRoundRobin.get_port_index">
+<span class="sig-name descname"><span class="pre">get_port_index</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/load_balancer.html#LoadBalancerRoundRobin.get_port_index"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#load_balancer.LoadBalancerRoundRobin.get_port_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Getting the next port index according to round robin by taking modulus
+using the get_port_index_from_table(self) index.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>self.current_port_index</strong> (<em>int</em>) – port number</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="load_balancer.LoadBalancerRoundRobin.get_port_index_from_table">
+<span class="sig-name descname"><span class="pre">get_port_index_from_table</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/load_balancer.html#LoadBalancerRoundRobin.get_port_index_from_table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#load_balancer.LoadBalancerRoundRobin.get_port_index_from_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the next port number by database through Select query.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>index</strong> – index</p>
+</dd>
+<dt class="field-even">Rtype index<span class="colon">:</span></dt>
+<dd class="field-even"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="load_balancer.LoadBalancerRoundRobin.update_port_index">
+<span class="sig-name descname"><span class="pre">update_port_index</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/load_balancer.html#LoadBalancerRoundRobin.update_port_index"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#load_balancer.LoadBalancerRoundRobin.update_port_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updating the database for the port number used by update query.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">FastChat</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">chmod-x</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="client.html">client module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="groups.html">groups module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">load_balancer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="myrsa.html">myrsa module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="server.html">server module</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="modules.html">chmod-x</a><ul>
+      <li>Previous: <a href="groups.html" title="previous chapter">groups module</a></li>
+      <li>Next: <a href="myrsa.html" title="next chapter">myrsa module</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2022, chmod+x.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/load_balancer.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

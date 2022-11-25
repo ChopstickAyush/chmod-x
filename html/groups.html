@@ -16,7 +16,7 @@
     <script src="_static/doctools.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="myrsa module" href="myrsa.html" />
+    <link rel="next" title="load_balancer module" href="load_balancer.html" />
     <link rel="prev" title="client module" href="client.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
@@ -165,18 +165,19 @@ select query and comparison.</p>
 <span class="sig-prename descclassname"><span class="pre">groups.</span></span><span class="sig-name descname"><span class="pre">get_encoded_key</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grpname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cursor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/groups.html#get_encoded_key"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#groups.get_encoded_key" title="Permalink to this definition">¶</a></dt>
 <dd><p>Select query to get the enrypted fernet key of the group, the key is coded by 
 name’s pulic key.</p>
-<p>:type grpname : string
-:param grpname: groupname for which fernet key has to be fetched
-:type name: string
-:param name: username whose public key has encrypted the fernet key
-:param cursor: cursor to execute the query
-:type cursor: socket.cursor</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns result<span class="colon">:</span></dt>
-<dd class="field-odd"><p>encrypted fernet key</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>grpname</strong> (<em>string</em>) – groupname for which fernet key has to be fetched</p></li>
+<li><p><strong>name</strong> (<em>string</em>) – username whose public key has encrypted the fernet key</p></li>
+<li><p><strong>cursor</strong> (<em>socket.cursor</em>) – cursor to execute the query</p></li>
+</ul>
 </dd>
-<dt class="field-even">Rtype result<span class="colon">:</span></dt>
-<dd class="field-even"><p>string</p>
+<dt class="field-even">Returns result<span class="colon">:</span></dt>
+<dd class="field-even"><p>encrypted fernet key</p>
+</dd>
+<dt class="field-odd">Rtype result<span class="colon">:</span></dt>
+<dd class="field-odd"><p>string</p>
 </dd>
 </dl>
 </dd></dl>
@@ -204,17 +205,18 @@ name’s pulic key.</p>
 <dt class="sig sig-object py" id="groups.pendingmsg">
 <span class="sig-prename descclassname"><span class="pre">groups.</span></span><span class="sig-name descname"><span class="pre">pendingmsg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">username</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grpname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cursor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/groups.html#pendingmsg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#groups.pendingmsg" title="Permalink to this definition">¶</a></dt>
 <dd><p>Select query to get the list of pending message for a given user in a specified group.</p>
-<p>:type grpname : string
-:param grpname: group for which pending message of given user has to be found
-:type username: string
-:param username: username for which pending message has to be found
-:type cursor: socket.cursor</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns rows<span class="colon">:</span></dt>
-<dd class="field-odd"><p>list of pending messages</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>grpname</strong> (<em>string</em>) – group for which pending message of given user has to be found</p></li>
+<li><p><strong>username</strong> (<em>string</em>) – username for which pending message has to be found</p></li>
+</ul>
 </dd>
-<dt class="field-even">Rtype rows<span class="colon">:</span></dt>
-<dd class="field-even"><p>list of strings</p>
+<dt class="field-even">Returns rows<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of pending messages</p>
+</dd>
+<dt class="field-odd">Rtype rows<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of strings</p>
 </dd>
 </dl>
 </dd></dl>
@@ -237,7 +239,7 @@ name’s pulic key.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="groups.sendmsg">
-<span class="sig-prename descclassname"><span class="pre">groups.</span></span><span class="sig-name descname"><span class="pre">sendmsg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">username</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grpname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cursor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/groups.html#sendmsg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#groups.sendmsg" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">groups.</span></span><span class="sig-name descname"><span class="pre">sendmsg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">username</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grpname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cursor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'M'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/groups.html#sendmsg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#groups.sendmsg" title="Permalink to this definition">¶</a></dt>
 <dd><p>Insert query for storing of message at server along with user , group in message table.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -253,7 +255,7 @@ name’s pulic key.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="groups.set_current_group">
-<span class="sig-prename descclassname"><span class="pre">groups.</span></span><span class="sig-name descname"><span class="pre">set_current_group</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grpname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cursor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/groups.html#set_current_group"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#groups.set_current_group" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">groups.</span></span><span class="sig-name descname"><span class="pre">set_current_group</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grpname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cursor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/groups.html#set_current_group"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#groups.set_current_group" title="Permalink to this definition">¶</a></dt>
 <dd><p>Update query to set current group of the user.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -261,6 +263,7 @@ name’s pulic key.</p>
 <li><p><strong>name</strong> (<em>string</em>) – name of the user</p></li>
 <li><p><strong>groupname</strong> (<em>string</em>) – groupname to be set</p></li>
 <li><p><strong>cursor</strong> (<em>socket.cursor</em>) – cursor to execute the query</p></li>
+<li><p><strong>remove</strong> – flag to set the current group of the user to null</p></li>
 </ul>
 </dd>
 </dl>
@@ -287,12 +290,15 @@ name’s pulic key.</p>
 <span class="sig-prename descclassname"><span class="pre">groups.</span></span><span class="sig-name descname"><span class="pre">update_client_counter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grpname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">counter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cursor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/groups.html#update_client_counter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#groups.update_client_counter" title="Permalink to this definition">¶</a></dt>
 <dd><p>Update query to update the time counter of usergroupinfo table showing that the user have seen
 that message.</p>
-<p>:type grpname : string
-:param grpname: groupname of user
-:type username: string
-:param username: name of the user
-:param cursor: cursor to execute the query
-:type cursor: socket.cursor</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>grpname</strong> (<em>string</em>) – groupname of user</p></li>
+<li><p><strong>username</strong> (<em>string</em>) – name of the user</p></li>
+<li><p><strong>cursor</strong> (<em>socket.cursor</em>) – cursor to execute the query</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -337,9 +343,10 @@ that message.</p>
 <h3>Navigation</h3>
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="modules.html">Documentation</a><ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">chmod-x</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="client.html">client module</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">groups module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="load_balancer.html">load_balancer module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="myrsa.html">myrsa module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="server.html">server module</a></li>
 </ul>
@@ -350,9 +357,9 @@ that message.</p>
 <h3>Related Topics</h3>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
-  <li><a href="modules.html">Documentation</a><ul>
+  <li><a href="modules.html">chmod-x</a><ul>
       <li>Previous: <a href="client.html" title="previous chapter">client module</a></li>
-      <li>Next: <a href="myrsa.html" title="next chapter">myrsa module</a></li>
+      <li>Next: <a href="load_balancer.html" title="next chapter">load_balancer module</a></li>
   </ul></li>
   </ul></li>
 </ul>

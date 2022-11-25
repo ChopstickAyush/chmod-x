@@ -40,12 +40,13 @@
 <span class="kn">import</span> <span class="nn">socket</span> <span class="c1">#Sockets for network connection</span>
 <span class="kn">import</span> <span class="nn">threading</span> <span class="c1"># for multiple proccess </span>
 <span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">import</span> <span class="nn">pickle</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">bcrypt</span>
 <span class="kn">import</span> <span class="nn">psycopg2</span>
-<span class="kn">import</span> <span class="nn">base64</span> 
+<span class="kn">import</span> <span class="nn">random</span>
 <span class="kn">from</span> <span class="nn">myrsa</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="c1"># from load_balancer import load_balancer_round_robin</span>
+<span class="kn">from</span> <span class="nn">load_balancer</span> <span class="kn">import</span> <span class="n">cpuutil_load_balancer</span>
 
 <span class="n">HEADER_LENGTH</span> <span class="o">=</span> <span class="mi">10</span>
 <span class="n">LARGEST_PACKET_LENGTH</span> <span class="o">=</span> <span class="mi">1024</span>
@@ -111,7 +112,8 @@
     
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">master</span><span class="p">,</span> <span class="n">ports</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        This is the constructor for the GUI class\n</span>
+<span class="sd">        This is the constructor for the GUI class</span>
+<span class="sd">        </span>
 <span class="sd">        :param master: This main Tkinter Window</span>
 <span class="sd">        :type master: Tk</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -175,9 +177,11 @@
 <div class="viewcode-block" id="GUI.receive_message_from_server"><a class="viewcode-back" href="../client.html#client.GUI.receive_message_from_server">[docs]</a>    <span class="k">def</span> <span class="nf">receive_message_from_server</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">so</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        This is used to recieve and handle all kinds of messages/responses from the server</span>
+<span class="sd">        </span>
 <span class="sd">        :param so: This is the client socket object</span>
 <span class="sd">        :type so: socket</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+
         <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
 
             <span class="n">header</span> <span class="o">=</span> <span class="n">so</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="n">HEADER_LENGTH</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
@@ -185,11 +189,11 @@
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">header</span><span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">,</span><span class="s1">&#39;Connection closed by the server&#39;</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
                 <span class="k">break</span>
-                <span class="c1"># print(&#39;Connection closed by the server&#39;)</span>
+     
                 <span class="c1"># sys.exit()</span>
 
             <span class="n">filtered_msg</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-            <span class="nb">print</span><span class="p">(</span><span class="n">filtered_msg</span><span class="p">)</span>
+   
 
             <span class="n">length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">filtered_msg</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
             <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
@@ -199,8 +203,6 @@
 
             <span class="k">if</span> <span class="n">length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="n">message</span> <span class="o">+=</span> <span class="n">so</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="n">length</span><span class="p">)</span>
-
-
             
             <span class="c1"># Receive and decode username</span>
             <span class="k">if</span> <span class="n">filtered_msg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;E&#39;</span><span class="p">:</span>
@@ -212,11 +214,34 @@
                         <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">,</span><span class="sa">f</span><span class="s1">&#39;You have left </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current_group</span><span class="si">}</span><span class="s1">!&#39;</span> <span class="o">+</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">yview</span><span class="p">(</span><span class="n">END</span><span class="p">)</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">current_group</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_group</span><span class="p">)</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">,</span><span class="sa">f</span><span class="s1">&#39;You have joined </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current_group</span><span class="si">}</span><span class="s1">!&#39;</span> <span class="o">+</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">yview</span><span class="p">(</span><span class="n">END</span><span class="p">)</span>
             
             <span class="k">elif</span> <span class="n">filtered_msg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;I&#39;</span> <span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span>
+                <span class="n">groupname</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">current_group</span>
+                <span class="n">username</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name_widget</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+                <span class="n">privatequery</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">                    Select key from </span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="s1"> where GroupName = </span>
+<span class="s1">                    </span><span class="se">\&#39;</span><span class="si">{</span><span class="n">groupname</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1"></span>
+<span class="s1">                    &#39;&#39;&#39;</span>
+                <span class="n">message</span> <span class="o">=</span> <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span>
+                <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">privatequery</span><span class="p">)</span>
+                
+                <span class="n">key</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="s2">&quot;b&#39;&quot;</span> <span class="o">+</span> <span class="n">key</span> <span class="o">+</span> <span class="s2">&quot;&#39;&quot;</span><span class="p">)</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="n">Fernet</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+             
+                <span class="n">message</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">decrypt</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+                <span class="c1">#self.chat_transcript_area.tag_config(&#39;warning&#39;, foreground=&quot;green&quot;)</span>
+                <span class="c1"># Now do the same for message (as we received username, we received whole message, there&#39;s no need to check if it has any length)</span>
+                
+                <span class="n">mesg</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s1">&#39;user&#39;</span><span class="p">:</span> <span class="n">username</span><span class="p">,</span> <span class="s1">&#39;group_name&#39;</span> <span class="p">:</span> <span class="n">groupname</span> <span class="p">,</span> <span class="s1">&#39;counter&#39;</span> <span class="p">:</span> <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;counter&#39;</span><span class="p">]})</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+                <span class="n">message_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mesg</span><span class="p">)</span>
+                <span class="n">acknowledgement</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;V</span><span class="si">{</span><span class="n">message_len</span><span class="si">:</span><span class="s2">&lt;</span><span class="si">{</span><span class="n">HEADER_LENGTH</span><span class="si">}}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+                                <span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">mesg</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">acknowledgement</span><span class="p">)</span>
+
                 <span class="n">image</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">message</span><span class="p">))</span>
                 <span class="n">image</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
             <span class="k">elif</span> <span class="n">filtered_msg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;L&#39;</span> <span class="p">:</span>
@@ -232,7 +257,7 @@
                 <span class="k">if</span> <span class="n">rows</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span> <span class="p">:</span>
                     <span class="n">key</span><span class="o">=</span><span class="n">generate_fernet</span><span class="p">()</span>
                     <span class="n">key</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">)[</span><span class="mi">2</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;FERNET : </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">)))</span>
+                 
                     <span class="n">insertkey</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;</span>
 <span class="s1">                    INSERT INTO </span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="s1"> VALUES (</span><span class="se">\&#39;</span><span class="si">{</span><span class="n">groupname</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1">, </span><span class="se">\&#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1">);</span>
 <span class="s1">                    &#39;&#39;&#39;</span>
@@ -253,7 +278,7 @@
                         <span class="k">continue</span>
                     <span class="n">public_client</span><span class="o">=</span><span class="n">public_key_decode</span><span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
                     <span class="n">mykey</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">public_client</span><span class="o">.</span><span class="n">encrypt</span><span class="p">(</span><span class="nb">eval</span><span class="p">(</span><span class="s2">&quot;b&#39;&quot;</span> <span class="o">+</span> <span class="n">key</span> <span class="o">+</span> <span class="s2">&quot;&#39;&quot;</span><span class="p">),</span> <span class="n">default_pad</span><span class="p">))</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">public_client</span><span class="o">.</span><span class="n">encrypt</span><span class="p">(</span><span class="nb">eval</span><span class="p">(</span><span class="s2">&quot;b&#39;&quot;</span> <span class="o">+</span> <span class="n">key</span> <span class="o">+</span> <span class="s2">&quot;&#39;&quot;</span><span class="p">),</span> <span class="n">default_pad</span><span class="p">)),</span> <span class="n">mykey</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+                
                 <span class="n">a</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">mykey</span><span class="p">)</span>
                 <span class="n">request</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
                 <span class="n">header</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Q</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">request</span><span class="p">)</span><span class="si">:</span><span class="s2">&lt;</span><span class="si">{</span><span class="n">HEADER_LENGTH</span><span class="si">}}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
@@ -262,8 +287,7 @@
             <span class="k">elif</span> <span class="n">filtered_msg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;Z&#39;</span> <span class="p">:</span>
                 <span class="n">message</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
                 <span class="n">username</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name_widget</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Received fernet key : &quot;</span><span class="p">)</span>
-                <span class="nb">print</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+           
 
                 <span class="n">fernet_key</span> <span class="o">=</span> <span class="n">message</span><span class="p">[</span><span class="s2">&quot;fernet_key&quot;</span><span class="p">]</span>
                 
@@ -277,18 +301,17 @@
                 <span class="n">private_key</span> <span class="o">=</span> <span class="n">private_key_decode</span><span class="p">(</span><span class="n">private_key</span><span class="p">)</span>
                 <span class="n">fernet_key</span> <span class="o">=</span> <span class="n">private_key</span><span class="o">.</span><span class="n">decrypt</span><span class="p">(</span><span class="nb">eval</span><span class="p">(</span><span class="n">fernet_key</span><span class="p">),</span> <span class="n">default_pad</span><span class="p">)</span>
                 <span class="n">fernet_key</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">fernet_key</span><span class="p">)[</span><span class="mi">2</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-                <span class="nb">print</span><span class="p">(</span><span class="n">fernet_key</span><span class="p">)</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;BEFORE INSERTION&quot;</span><span class="p">)</span>
+              
                 <span class="n">insertkeyquery</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;</span>
 <span class="s1">                Insert into </span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="s1"> (GroupName, Key) VALUES (</span><span class="se">\&#39;</span><span class="si">{</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;groupname&quot;</span><span class="p">]</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1">, </span><span class="se">\&#39;</span><span class="si">{</span><span class="n">fernet_key</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1">) </span>
 <span class="s1">                &#39;&#39;&#39;</span>
                 <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">insertkeyquery</span><span class="p">)</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;hi&quot;</span><span class="p">)</span>
+            
 
             <span class="k">elif</span> <span class="n">filtered_msg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;J&#39;</span> <span class="p">:</span>
                  <span class="n">message</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
-                 <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">tag_config</span><span class="p">(</span><span class="s1">&#39;warning&#39;</span><span class="p">,</span> <span class="n">foreground</span><span class="o">=</span><span class="s2">&quot;green&quot;</span><span class="p">)</span>
-                 <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">,</span><span class="n">message</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span><span class="s1">&#39;warning&#39;</span><span class="p">)</span>
+                 <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">tag_config</span><span class="p">(</span><span class="s1">&#39;success&#39;</span><span class="p">,</span> <span class="n">foreground</span><span class="o">=</span><span class="s2">&quot;green&quot;</span><span class="p">)</span>
+                 <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">,</span><span class="n">message</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span><span class="s1">&#39;success&#39;</span><span class="p">)</span>
                  <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">yview</span><span class="p">(</span><span class="n">END</span><span class="p">)</span>
             <span class="k">elif</span> <span class="n">filtered_msg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;M&quot;</span><span class="p">:</span>
                 <span class="n">msg</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span>
@@ -299,7 +322,7 @@
 <span class="s1">                    </span><span class="se">\&#39;</span><span class="si">{</span><span class="n">groupname</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1"></span>
 <span class="s1">                    &#39;&#39;&#39;</span>
                 <span class="n">message</span> <span class="o">=</span> <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span>
-                <span class="nb">print</span><span class="p">(</span><span class="n">groupname</span><span class="p">)</span>
+     
                 <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">privatequery</span><span class="p">)</span>
                 
                 <span class="n">key</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
@@ -307,7 +330,7 @@
                 <span class="n">key</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="s2">&quot;b&#39;&quot;</span> <span class="o">+</span> <span class="n">key</span> <span class="o">+</span> <span class="s2">&quot;&#39;&quot;</span><span class="p">)</span>
                 <span class="c1"># print(key)</span>
                 <span class="n">key</span> <span class="o">=</span> <span class="n">Fernet</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-                <span class="nb">print</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+              
                 <span class="n">message</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">decrypt</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
                 <span class="c1">#self.chat_transcript_area.tag_config(&#39;warning&#39;, foreground=&quot;green&quot;)</span>
                 <span class="c1"># Now do the same for message (as we received username, we received whole message, there&#39;s no need to check if it has any length)</span>
@@ -320,9 +343,24 @@
                 <span class="n">acknowledgement</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;V</span><span class="si">{</span><span class="n">message_len</span><span class="si">:</span><span class="s2">&lt;</span><span class="si">{</span><span class="n">HEADER_LENGTH</span><span class="si">}}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
                                 <span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">mesg</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">acknowledgement</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">filtered_msg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;C&quot;</span><span class="p">:</span>
+                
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">client_sockets</span><span class="p">:</span>
+                    <span class="n">i</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="k">break</span>
+                
+            <span class="k">elif</span> <span class="n">filtered_msg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;R&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">enter_text_widget</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">state</span><span class="o">=</span><span class="s1">&#39;disabled&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">current_group</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">message</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+              
+                <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">tag_config</span><span class="p">(</span><span class="s1">&#39;warning&#39;</span><span class="p">,</span> <span class="n">foreground</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">,</span><span class="n">message</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span><span class="s1">&#39;warning&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">chat_transcript_area</span><span class="o">.</span><span class="n">yview</span><span class="p">(</span><span class="n">END</span><span class="p">)</span>
 
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;closed!&#39;</span><span class="p">)</span>
-        <span class="n">so</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;closed&quot;</span><span class="p">)</span>
+        <span class="n">so</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 
     <span class="c1">#Requests</span>
@@ -391,14 +429,26 @@
             <span class="k">return</span>
         <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span>
         <span class="n">send</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;&quot;</span>
-        <span class="n">data1</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-        <span class="k">while</span> <span class="n">data1</span> <span class="p">:</span> 
-            <span class="n">send</span> <span class="o">+=</span> <span class="n">data1</span>
-            <span class="n">data1</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1024</span><span class="p">)</span>
-            
+        <span class="n">data</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="k">while</span> <span class="n">data</span> <span class="p">:</span> 
+            <span class="n">send</span> <span class="o">+=</span> <span class="n">data</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1024</span><span class="p">)</span>
+
+        <span class="n">username</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name_widget</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+        <span class="n">fernetkeyquery</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">        Select key from </span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="s1"> where GroupName = </span><span class="se">\&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current_group</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1"></span>
+<span class="s1">        &#39;&#39;&#39;</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">fernetkeyquery</span><span class="p">)</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="s2">&quot;b&#39;&quot;</span> <span class="o">+</span> <span class="n">key</span> <span class="o">+</span> <span class="s2">&quot;&#39;&quot;</span><span class="p">)</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">Fernet</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">send</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">encrypt</span><span class="p">(</span><span class="n">send</span><span class="p">)</span>
         <span class="n">img_header</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;I</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">send</span><span class="p">)</span><span class="si">:</span><span class="s2">&lt;</span><span class="si">{</span><span class="n">HEADER_LENGTH</span><span class="si">}}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">img_header</span> <span class="o">+</span> <span class="n">send</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">round_robin_load_switcher</span><span class="p">()</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">load_switcher</span><span class="p">()</span></div>
+        
+      
 
 <div class="viewcode-block" id="GUI.display_create_group_window"><a class="viewcode-back" href="../client.html#client.GUI.display_create_group_window">[docs]</a>    <span class="k">def</span> <span class="nf">display_create_group_window</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -411,7 +461,7 @@
         <span class="n">top</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Create/Amend a Group&quot;</span><span class="p">)</span>
 
         
-        <span class="c1"># print(users)</span>
+    
         
         
         <span class="n">frame</span> <span class="o">=</span> <span class="n">Frame</span><span class="p">(</span><span class="n">top</span><span class="p">)</span>
@@ -456,7 +506,7 @@
         <span class="n">request</span> <span class="o">=</span> <span class="p">(</span><span class="n">grp_head</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
         <span class="n">header</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;R</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">request</span><span class="p">)</span><span class="si">:</span><span class="s2">&lt;</span><span class="si">{</span><span class="n">HEADER_LENGTH</span><span class="si">}}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">header</span> <span class="o">+</span> <span class="n">request</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">round_robin_load_switcher</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">load_switcher</span><span class="p">()</span>
         <span class="n">top</span><span class="o">.</span><span class="n">destroy</span><span class="p">()</span></div>
 
 
@@ -484,6 +534,7 @@
 <div class="viewcode-block" id="GUI.join_group"><a class="viewcode-back" href="../client.html#client.GUI.join_group">[docs]</a>    <span class="k">def</span> <span class="nf">join_group</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">grpname</span><span class="p">,</span><span class="n">top</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        This sends a request to the server when a client wants to join a group</span>
+<span class="sd">        </span>
 <span class="sd">        :param grpname: This is the group name</span>
 <span class="sd">        :type top: string</span>
 <span class="sd">        :param top: This is the popup window</span>
@@ -495,16 +546,28 @@
         <span class="n">top</span><span class="o">.</span><span class="n">destroy</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">join_group_button</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;Change Group&#39;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">select_image_button</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">state</span> <span class="o">=</span> <span class="s1">&#39;normal&#39;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">round_robin_load_switcher</span><span class="p">()</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">load_switcher</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="GUI.round_robin_load_switcher"><a class="viewcode-back" href="../client.html#client.GUI.round_robin_load_switcher">[docs]</a>    <span class="k">def</span> <span class="nf">round_robin_load_switcher</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_index</span><span class="p">)</span>
+<div class="viewcode-block" id="GUI.load_switcher"><a class="viewcode-back" href="../client.html#client.GUI.load_switcher">[docs]</a>    <span class="k">def</span> <span class="nf">load_switcher</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="c1">####ROUND ROBIN LOAD SWITCHER</span>
+        <span class="c1"># self.current_index = load_balancer_round_robin.get_port_index()</span>
+        <span class="c1"># self.current_client_socket= self.client_sockets[self.current_index]</span>
+
+
+        <span class="c1">#####LOAD BALANCER BASED ON CPU UTILISATION</span>
+        <span class="c1"># self.current_index = cpuutil_load_balancer.get_port_from_table()</span>
+        <span class="c1"># self.current_client_socket= self.client_sockets[self.current_index]</span>
+
+
+        <span class="c1">#####LOAD BALANCER BASED ON ROUND ROBIN BUT ON CLIENT SIDE</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">current_index</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_index</span> <span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">%</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ports</span><span class="p">))</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client_sockets</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">current_index</span><span class="p">]</span>
-        <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_index</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="p">)</span></div>
-        <span class="c1"># self.initialize_socket(self.current_port)</span>
-        <span class="c1"># self.listen_for_incoming_messages_in_a_thread()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client_sockets</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">current_index</span><span class="p">]</span></div>
+
+        <span class="c1">##### RANDOM LOAD SWITCHER</span>
+        <span class="c1"># self.curent_index = random.randint(0,len(self.ports)-1)</span>
+        <span class="c1"># self.current_client_socket= self.client_sockets[self.current_index]</span>
+
 
 <div class="viewcode-block" id="GUI.on_signup"><a class="viewcode-back" href="../client.html#client.GUI.on_signup">[docs]</a>    <span class="k">def</span> <span class="nf">on_signup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -524,13 +587,13 @@
 
             <span class="n">salt</span> <span class="o">=</span> <span class="n">bcrypt</span><span class="o">.</span><span class="n">gensalt</span><span class="p">()</span>
             <span class="n">pwdhash</span> <span class="o">=</span> <span class="n">bcrypt</span><span class="o">.</span><span class="n">hashpw</span><span class="p">(</span><span class="n">password</span><span class="p">,</span><span class="n">salt</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;before rsa&quot;</span><span class="p">)</span>
+      
             <span class="n">public_key</span><span class="p">,</span> <span class="n">private_key</span><span class="p">,</span> <span class="n">insertmsgquery</span> <span class="o">=</span> <span class="n">enter_my_key</span><span class="p">(</span><span class="n">username</span><span class="p">,</span><span class="n">cursor</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;after rsa&quot;</span><span class="p">)</span>
+      
             <span class="n">userdetails</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s1">&#39;token&#39;</span> <span class="p">:</span> <span class="s1">&#39;register&#39;</span><span class="p">,</span><span class="s1">&#39;user&#39;</span> <span class="p">:</span> <span class="n">username</span><span class="p">,</span> <span class="s1">&#39;pass&#39;</span> <span class="p">:</span> <span class="n">pwdhash</span><span class="p">,</span> <span class="s1">&#39;public_key&#39;</span><span class="p">:</span> <span class="n">public_key</span> <span class="p">})</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
             <span class="n">header</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;S</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">userdetails</span><span class="p">)</span><span class="si">:</span><span class="s2">&lt;</span><span class="si">{</span><span class="n">HEADER_LENGTH</span><span class="si">}}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">header</span> <span class="o">+</span> <span class="n">userdetails</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">userdetails</span><span class="p">))</span>
+       
             <span class="n">code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="n">code</span> <span class="o">==</span> <span class="s1">&#39;err_2&#39;</span><span class="p">:</span>
@@ -567,13 +630,10 @@
             
             <span class="n">userdetails</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s1">&#39;token&#39;</span> <span class="p">:</span> <span class="s1">&#39;join&#39;</span><span class="p">,</span><span class="s1">&#39;user&#39;</span> <span class="p">:</span> <span class="n">username</span><span class="p">,</span> <span class="s1">&#39;pass&#39;</span> <span class="p">:</span> <span class="n">password</span><span class="p">})</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
             <span class="n">header</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;A</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">userdetails</span><span class="p">)</span><span class="si">:</span><span class="s2">&lt;</span><span class="si">{</span><span class="n">HEADER_LENGTH</span><span class="si">}}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;here&quot;</span><span class="p">)</span>
-            <span class="c1"># self.current_client_socket.send(header + userdetails)</span>
-            <span class="c1"># code = self.current_client_socket.recv(10).decode(&#39;utf-8&#39;)</span>
-            <span class="c1"># print(code)</span>
+         
+    
             <span class="k">for</span> <span class="n">port</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ports</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;here&quot;</span><span class="p">)</span>
-                <span class="c1"># print(cs)</span>
+               
                 <span class="bp">self</span><span class="o">.</span><span class="n">initialize_socket</span><span class="p">(</span><span class="n">port</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">header</span> <span class="o">+</span> <span class="n">userdetails</span><span class="p">)</span>
                 <span class="n">code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
@@ -627,11 +687,11 @@
             <span class="n">fernetkeyquery</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&#39;&#39;</span>
 <span class="s1">            Select key from </span><span class="si">{</span><span class="n">username</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="si">}</span><span class="s1"> where GroupName = </span><span class="se">\&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current_group</span><span class="si">}</span><span class="se">\&#39;</span><span class="s1"></span>
 <span class="s1">            &#39;&#39;&#39;</span>
-            <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_group</span><span class="p">)</span>
+          
             <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">fernetkeyquery</span><span class="p">)</span>
             <span class="n">key</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
             <span class="n">key</span> <span class="o">=</span> <span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Send!! : &quot;</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        
             <span class="n">key</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="s2">&quot;b&#39;&quot;</span> <span class="o">+</span> <span class="n">key</span> <span class="o">+</span> <span class="s2">&quot;&#39;&quot;</span><span class="p">)</span>
             <span class="n">key</span> <span class="o">=</span> <span class="n">Fernet</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
             <span class="n">message</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">encrypt</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
@@ -639,7 +699,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">message_header</span> <span class="o">+</span> <span class="n">message</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">enter_text_widget</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;end&#39;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">round_robin_load_switcher</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">load_switcher</span><span class="p">()</span>
         <span class="k">return</span> <span class="s1">&#39;break&#39;</span></div>
 
 <div class="viewcode-block" id="GUI.on_close_window"><a class="viewcode-back" href="../client.html#client.GUI.on_close_window">[docs]</a>    <span class="k">def</span> <span class="nf">on_close_window</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -647,14 +707,25 @@
 <span class="sd">        This handles exiting the GUI</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">messagebox</span><span class="o">.</span><span class="n">askokcancel</span><span class="p">(</span><span class="s2">&quot;Quit&quot;</span><span class="p">,</span> <span class="s2">&quot;Do you want to quit?&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_joined</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">destroy</span><span class="p">()</span>
+                <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">username</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s1">&#39;user&#39;</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name_widget</span><span class="o">.</span><span class="n">get</span><span class="p">()})</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+            <span class="n">header</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;C</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">username</span><span class="p">)</span><span class="si">:</span><span class="s2">&lt;</span><span class="si">{</span><span class="n">HEADER_LENGTH</span><span class="si">}}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">header</span> <span class="o">+</span> <span class="n">username</span><span class="p">)</span>
+            <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">pass</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">destroy</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">current_client_socket</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
             <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div></div>
+            
+            
+ 
+            
 
 <span class="c1">#the mail function </span>
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
     <span class="c1"># proxy = xmlrpc.client.ServerProxy(&quot;http://localhost:8080/&quot;)</span>
-    <span class="n">ports</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1234</span><span class="p">]</span>
+    <span class="n">ports</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1234</span><span class="p">,</span><span class="mi">1235</span><span class="p">]</span>
     <span class="n">root</span> <span class="o">=</span> <span class="n">Tk</span><span class="p">()</span>
     <span class="n">gui</span> <span class="o">=</span> <span class="n">GUI</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">ports</span><span class="p">)</span>
     <span class="n">root</span><span class="o">.</span><span class="n">protocol</span><span class="p">(</span><span class="s2">&quot;WM_DELETE_WINDOW&quot;</span><span class="p">,</span> <span class="n">gui</span><span class="o">.</span><span class="n">on_close_window</span><span class="p">)</span>
@@ -680,7 +751,7 @@
 <h3>Navigation</h3>
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../modules.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">chmod-x</a></li>
 </ul>
 
 <div class="relations">

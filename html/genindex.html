@@ -83,7 +83,13 @@
       <li><a href="client.html#client.GUI.create_group_request">create_group_request() (client.GUI method)</a>
 </li>
       <li><a href="groups.html#groups.create_tables">create_tables() (in module groups)</a>
+
+      <ul>
+        <li><a href="load_balancer.html#load_balancer.LoadBalancerCPUUtil.create_tables">(load_balancer.LoadBalancerCPUUtil method)</a>
 </li>
+        <li><a href="load_balancer.html#load_balancer.LoadBalancerRoundRobin.create_tables">(load_balancer.LoadBalancerRoundRobin method)</a>
+</li>
+      </ul></li>
       <li><a href="groups.html#groups.creategrp">creategrp() (in module groups)</a>
 </li>
   </ul></td>
@@ -130,9 +136,15 @@
 </li>
       <li><a href="groups.html#groups.get_encoded_key">get_encoded_key() (in module groups)</a>
 </li>
+      <li><a href="groups.html#groups.get_message_counter">get_message_counter() (in module groups)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="groups.html#groups.get_message_counter">get_message_counter() (in module groups)</a>
+      <li><a href="load_balancer.html#load_balancer.LoadBalancerCPUUtil.get_port_from_table">get_port_from_table() (load_balancer.LoadBalancerCPUUtil method)</a>
+</li>
+      <li><a href="load_balancer.html#load_balancer.LoadBalancerRoundRobin.get_port_index">get_port_index() (load_balancer.LoadBalancerRoundRobin method)</a>
+</li>
+      <li><a href="load_balancer.html#load_balancer.LoadBalancerRoundRobin.get_port_index_from_table">get_port_index_from_table() (load_balancer.LoadBalancerRoundRobin method)</a>
 </li>
       <li>
     groups
@@ -171,9 +183,22 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="client.html#client.GUI.last_received_message">last_received_message (client.GUI attribute)</a>
 </li>
+      <li><a href="client.html#client.GUI.listen_for_incoming_messages_in_a_thread">listen_for_incoming_messages_in_a_thread() (client.GUI method)</a>
+</li>
+      <li>
+    load_balancer
+
+      <ul>
+        <li><a href="load_balancer.html#module-load_balancer">module</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="client.html#client.GUI.listen_for_incoming_messages_in_a_thread">listen_for_incoming_messages_in_a_thread() (client.GUI method)</a>
+      <li><a href="client.html#client.GUI.load_switcher">load_switcher() (client.GUI method)</a>
+</li>
+      <li><a href="load_balancer.html#load_balancer.LoadBalancerCPUUtil">LoadBalancerCPUUtil (class in load_balancer)</a>
+</li>
+      <li><a href="load_balancer.html#load_balancer.LoadBalancerRoundRobin">LoadBalancerRoundRobin (class in load_balancer)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -188,6 +213,8 @@
         <li><a href="client.html#module-client">client</a>
 </li>
         <li><a href="groups.html#module-groups">groups</a>
+</li>
+        <li><a href="load_balancer.html#module-load_balancer">load_balancer</a>
 </li>
         <li><a href="myrsa.html#module-myrsa">myrsa</a>
 </li>
@@ -245,13 +272,11 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="server.html#server.receive_message">receive_message() (in module server)</a>
 </li>
-      <li><a href="client.html#client.GUI.receive_message_from_server">receive_message_from_server() (client.GUI method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="groups.html#groups.remove_users_from_group">remove_users_from_group() (in module groups)</a>
+      <li><a href="client.html#client.GUI.receive_message_from_server">receive_message_from_server() (client.GUI method)</a>
 </li>
-      <li><a href="client.html#client.GUI.round_robin_load_switcher">round_robin_load_switcher() (client.GUI method)</a>
+      <li><a href="groups.html#groups.remove_users_from_group">remove_users_from_group() (in module groups)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -290,6 +315,12 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="groups.html#groups.update_client_counter">update_client_counter() (in module groups)</a>
 </li>
+      <li><a href="load_balancer.html#load_balancer.LoadBalancerCPUUtil.update_port_index">update_port_index() (load_balancer.LoadBalancerCPUUtil method)</a>
+
+      <ul>
+        <li><a href="load_balancer.html#load_balancer.LoadBalancerRoundRobin.update_port_index">(load_balancer.LoadBalancerRoundRobin method)</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="client.html#client.user_table">user_table() (in module client)</a>
@@ -327,7 +358,7 @@
 <h3>Navigation</h3>
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="modules.html">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">chmod-x</a></li>
 </ul>
 
 <div class="relations">

@@ -1,10 +1,11 @@
-Documentation
-=============
+chmod-x
+=======
 
 .. toctree::
    :maxdepth: 4
 
    client
    groups
+   load_balancer
    myrsa
    server
