@@ -31,7 +31,7 @@ class LoadBalancerRoundRobin:
         create ='''
             DROP TABLE IF EXISTS RoundRobin;
             CREATE TABLE IF NOT EXISTS RoundRobin (
-            id INT PRIMARY KEY,
+            id INT,
             index INT DEFAULT 0
             );
         '''
@@ -40,7 +40,6 @@ class LoadBalancerRoundRobin:
         check  = '''SELECT index from RoundRobin WHERE id = (123)'''
         self.cursor.execute(check)
         result = self.cursor.fetchone()
-        print(result)
         if result is None:
             insert = '''INSERT INTO RoundRobin (id,index) VALUES(123,0)'''
             self.cursor.execute(insert)
@@ -48,8 +47,7 @@ class LoadBalancerRoundRobin:
 
         
 
-        print("Database created successfully........")
-
+        
         return
 
 class LoadBalancerCPUUtil:
@@ -107,5 +105,5 @@ database="postgres", user='postgres', password='1234', host='127.0.0.1', port= '
 conn.autocommit = True
 n_ports =2 # NEED TO MANUALLY SET THIS
 ports = [1234,1235]
-# load_balancer_round_robin = LoadBalancerRoundRobin(n_ports, conn.cursor())
-cpuutil_load_balancer = LoadBalancerCPUUtil(n_ports,ports,conn.cursor())
+load_balancer_round_robin = LoadBalancerRoundRobin(n_ports, conn.cursor())
+# cpuutil_load_balancer = LoadBalancerCPUUtil(n_ports,ports,conn.cursor())
