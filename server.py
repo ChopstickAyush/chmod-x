@@ -6,6 +6,8 @@ import select
 import threading
 import json
 import sys
+import psutil
+from load_balancer import cpuutil_load_balancer
 # from xmlrpc.server import SimpleXMLRPCServer
 
 from groups import *
@@ -16,6 +18,8 @@ HEADER_LENGTH = 10
 IP = "127.0.0.1"
 PORT = int(sys.argv[1])
 
+
+current_process = psutil.Process()
 
 class Client:
     socket = None
@@ -106,7 +110,14 @@ def receive_message(client_socket):
         # socket.close() also invokes socket.shutdown(socket.SHUT_RDWR) what sends information about closing the socket (shutdown read/write)
         # and that's also a cause when we receive an empty message
         return False
+def log_cpu_util():
+    while True:
+        cpuutil_load_balancer.update_port_index(current_process.cpu_percent(2),PORT)
 
+
+
+perf_thread = threading.Thread(target=log_cpu_util, )
+perf_thread.start()
 
 while True:
 

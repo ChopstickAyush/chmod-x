@@ -11,6 +11,7 @@ import sys
 NUM_CLIENTS = int(sys.argv[3])
 NUM_SERVERS = int(sys.argv[4])
 
+if os.path.exists("log") : os.system('rm -r log')
 os.makedirs("log")
 
 def osstuff() : 

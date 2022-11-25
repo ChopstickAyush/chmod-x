@@ -12,6 +12,8 @@ import pickle
 import numpy as np
 import bcrypt
 import time 
+import sys
+from load_balancer import cpuutil_load_balancer
 HEADER_LENGTH = 10
 
 from datetime import datetime
@@ -407,8 +409,13 @@ class Term:
 
     def round_robin_load_switcher(self):
         # print(self.current_index)
+
+        # Round Robin v1
         self.current_index = (self.current_index +1)%(len(self.ports))
-        self.current_client_socket= self.client_sockets[self.current_index]
+
+        # Round Robin v2
+        #self.current_index = cpuutil_load_balancer.get_port_from_table() -1
+        #self.current_client_socket= self.client_sockets[self.current_index]
         # print(self.current_index)
         # print(self.current_client_socket)
         # self.initialize_socket(self.current_port)
@@ -554,7 +561,9 @@ class Term:
 #the mail function 
 if __name__ == '__main__':
     # proxy = xmlrpc.client.ServerProxy("http://localhost:8080/")
-    ports = [1234,1235,1236]
+    start_port = int(sys.argv[1])
+    num_ports = int(sys.argv[2])
+    ports = list(range(start_port, start_port + num_ports))
     # root = ""
     gui = Term(ports)
     # root.protocol("WM_DELETE_WINDOW", gui.on_close_window)

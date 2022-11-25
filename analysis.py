@@ -43,13 +43,17 @@ def latency(messages, start_id, end_id) :
                 if j.split(' ')[-1] == 'r' and i.split(' ')[:3] == j.split(' ')[:3] :
                     latency += np.abs(int(j.split(' ')[-2]) - int(i.split(' ')[-2]))
                     num += 1
+    if num == 0 : 
+        print("Not enough data!")
+        return 0
+    
     return latency/num
 
 print(latency(sorted_messages, 0, 1000))
 
 def throughput(messages, time_window) :
 
-    start_time = int(messages[0].split(" ")[-2])
+    start_time = int(messages[0].split(" ")[-2]) + 100
 
     # Considering average over 10 intervals separated by 100ms
     starts = list(range(start_time, start_time + time_window * 10, time_window))
