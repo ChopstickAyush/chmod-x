@@ -18,11 +18,25 @@ PORT = int(sys.argv[1])
 
 
 class Client:
+    """
+    This is the class client to be used by server to hold parameters of client like userdetails and socket.
+    :param userdetails: Name of the user
+    :type userdetails: string
+    :param socket: socket used by the client
+    :type socket: socket.socket
+    """
     socket = None
     userdetails = None
     #public_key = None
 
     def __init__(self, socket, userdetails):
+        """
+        This is the constructor for the Client class\n
+        :param userdetails: Name of the user
+        :type userdetails: string
+        :param socket: socket used by the client
+        :type socket: socket.socket
+        """
         self.socket = socket
         self.userdetails = userdetails
         #self.public_key = public_key
@@ -55,7 +69,19 @@ print(f'Listening for connections on {IP}:{PORT}...')
 
 
 def send_message_in_packets(client_socket,message,header ,length):
-
+    """
+    A function used to send a message in packet form to the clients to 
+    minimize loss of data.
+    
+    :param client_socket: socket to which message has to be send 
+    :type socket: socket.socket
+    :param header : header of message containing initial details of the message
+    :type header: string
+    :param length : Total length of the message
+    :type length: int
+    :param message: message to be send 
+    :type message: string
+    """
     client_socket.send(header)
     while length > LARGEST_PACKET_LENGTH:
           length -= LARGEST_PACKET_LENGTH
@@ -68,7 +94,17 @@ def send_message_in_packets(client_socket,message,header ,length):
 
 # Handles message receiving
 def receive_message(client_socket):
+    """
+    The function that listens the message from client_socket and returns this information further
+    by splitting it into two parts header containing type of message and data containg the message
+    :param client_socket: socket from which message is listened
+    :type socket: socket.socket
 
+    :returns header: type of message
+    :type header: string
+    :returns data: actual message
+    :type data: string
+    """
     try:
 
         # Receive our "header" containing message length, it's size is defined and constant
@@ -83,19 +119,14 @@ def receive_message(client_socket):
         # Convert header to int value
         message_length = int(filtered_msg[1:])
         message = "".encode('utf-8')
-        print('here1')
         while message_length > LARGEST_PACKET_LENGTH:
-            print('here2')
             message += client_socket.recv(LARGEST_PACKET_LENGTH)
             message_length -= LARGEST_PACKET_LENGTH
 
         if message_length > 0:
-            print('here3',message_length)
             msg = client_socket.recv(message_length)
-            print(msg)
             message += msg
 
-        print(message)
         # Return an object of message header and message data
         return {'header': message_header, 'data': message}
 
@@ -109,16 +140,6 @@ def receive_message(client_socket):
 
 
 while True:
-
-    # Calls Unix select() system call or Windows select() WinSock call with three parameters:
-    #   - rlist - sockets to be monitored for incoming data
-    #   - wlist - sockets for data to be send to (checks if for example buffers are not full and socket is ready to send some data)
-    #   - xlist - sockets to be monitored for exceptions (we want to monitor all sockets for errors, so we can use rlist)
-    # Returns lists:
-    #   - reading - sockets we received some data on (that way we don't have to check sockets manually)
-    #   - writing - sockets ready for data to be send thru them
-    #   - errors  - sockets with some exceptions
-    # This is a blocking call, code execution will "wait" here and "get" notified in case any action should be taken
     read_sockets, _, exception_sockets = select.select(
         sockets_list, [], sockets_list)
 
