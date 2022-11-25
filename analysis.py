@@ -43,3 +43,46 @@ def latency(messages, start_id, end_id) :
 
 print(latency(sorted_messages, 500, 1000))
 
+def throughput(messages, time_window) :
+
+    start_time = int(messages[0].split(" ")[-2])
+
+    # Considering average over 10 intervals separated by 100ms
+    starts = list(range(start_time, start_time + time_window * 10, time_window))
+    num_input = 0
+    num_output = 0
+    input_throughputs = []
+    output_throughputs = []
+
+    for start in starts : 
+        end_time = start + time_window 
+
+        for i in messages :
+            if len(i.split(' ')) >= 2:  
+                if int(i.split(' ')[-2]) >= start and int(i.split(' ')[-2]) <= end_time : 
+                    if i.split(' ')[-1] == 'r':
+                        num_input += 1
+                    else : 
+                        num_output += 1
+        
+        input_throughputs.append(num_input)
+        output_throughputs.append(num_output)
+    
+    input_avg = 0 
+    count = 0
+    for i in input_throughputs : 
+        input_avg += i 
+        count += 1
+    input_avg = input_avg/count
+
+    output_avg = 0 
+    count = 0
+    for i in output_throughputs : 
+        output_avg += i 
+        count += 1
+    output_avg = output_avg/count
+
+    return [input_avg, output_avg]
+
+throughputs = throughput(sorted_messages, 1000)
+print(throughputs)
